@@ -5,5 +5,11 @@
     "name": "domovou69",
     "url": "https://github.com/domovou69"
   },
-  "plugins": []
+  "plugins": [
+    {
+      "name": "git-guard",
+      "source": "./plugins/git-guard",
+      "description": "Hook: blocks git commit and git push on main/master, except the first commit and first push of a new repository"
+    }
+  ]
 }
