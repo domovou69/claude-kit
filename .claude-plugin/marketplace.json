@@ -1,0 +1,9 @@
+{
+  "name": "claude-kit",
+  "description": "Reusable Claude Code skills and hooks, grouped by direction",
+  "owner": {
+    "name": "domovou69",
+    "url": "https://github.com/domovou69"
+  },
+  "plugins": []
+}
