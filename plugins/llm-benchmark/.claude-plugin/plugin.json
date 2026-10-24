@@ -1,0 +1,11 @@
+{
+  "name": "llm-benchmark",
+  "description": "Compare LLMs against a deterministic tool fairly: isolated runs, one prompt, the tool as 100 %, WRONG on its own line, chunks with --resume, cost and time per run, effort at most xhigh",
+  "author": {
+    "name": "domovou69",
+    "url": "https://github.com/domovou69"
+  },
+  "repository": "https://github.com/domovou69/claude-kit",
+  "license": "MIT",
+  "keywords": ["llm", "benchmark", "claude", "evaluation", "hook"]
+}

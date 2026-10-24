@@ -15,6 +15,16 @@
       "name": "locator-converter",
       "source": "./plugins/locator-converter",
       "description": "Skill build: plan, build and audit a converter between test locator languages (XPath to class chain, UiSelector, …) with a device oracle, exact/close/skip outcomes and fixed scoring"
+    },
+    {
+      "name": "mobile-test-runs",
+      "source": "./plugins/mobile-test-runs",
+      "description": "Skills ios-simulator, ios-real-device, android-emulator + hooks: device tests and timing benchmarks only on AC power with Low Power Mode off, under caffeinate, headless emulator, new devices only with consent, background runs with a monitor and --resume"
+    },
+    {
+      "name": "llm-benchmark",
+      "source": "./plugins/llm-benchmark",
+      "description": "Skill llm-vs-tool + hook: compare LLMs against a deterministic tool — isolated chunked runs with --resume, one prompt, the tool as 100 %, WRONG on its own line, cost and time per run, effort at most xhigh"
     }
   ]
 }
