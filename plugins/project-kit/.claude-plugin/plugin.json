@@ -1,0 +1,11 @@
+{
+  "name": "project-kit",
+  "description": "Start and review projects without repeating old mistakes: kickoff (health check, kit plugins to use, CLAUDE.md and PLAN.md with estimates from templates) and retro (feedback memory → missing rules, repeated violations → hook candidates, unused skills → fix or remove, as a PR to the kit)",
+  "author": {
+    "name": "domovou69",
+    "url": "https://github.com/domovou69"
+  },
+  "repository": "https://github.com/domovou69/claude-kit",
+  "license": "MIT",
+  "keywords": ["project", "kickoff", "plan", "retro", "retrospective", "memory", "rules", "hooks"]
+}

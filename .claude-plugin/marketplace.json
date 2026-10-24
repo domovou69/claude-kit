@@ -30,6 +30,11 @@
       "name": "publishing",
       "source": "./plugins/publishing",
       "description": "Skills npm-release, devto-article, github-pages-playground + hook: README as the npm page, bin bit, bump PR from main, tag and GitHub release on publish day; dev.to format, PNG charts, cover, nothing unreleased, link back; a Pages playground built from the library with a parity check; only the user runs npm publish"
+    },
+    {
+      "name": "project-kit",
+      "source": "./plugins/project-kit",
+      "description": "Skills kickoff and retro: start a project with a health check, the kit plugins that fit, CLAUDE.md and PLAN.md from templates with an estimate per stage; review it by turning feedback memory into missing rules, repeated violations into hook candidates, duplicated rules into one copy and unused skills into new descriptions or removals, as a PR to the kit"
     }
   ]
 }
