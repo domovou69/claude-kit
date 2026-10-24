@@ -8,6 +8,7 @@ Each plugin is one direction; each skill inside it is one task and shows up as `
 
 | Plugin | Skills / hooks | When to use | Used in |
 | :- | :- | :- | :- |
+| [git-guard](plugins/git-guard) | hook `PreToolUse` on Bash | Always on, every project: blocks `git commit` / `git push` on `main` or `master` except a new repository's first commit and first push. Not for repositories where you commit to `main` on purpose | xpath-to-class-chain, xpath-to-uiselector |
 
 ## Install
 

@@ -1,0 +1,11 @@
+{
+  "name": "git-guard",
+  "description": "Blocks git commit and git push on main/master; allows only the first commit and first push of a new repository",
+  "author": {
+    "name": "domovou69",
+    "url": "https://github.com/domovou69"
+  },
+  "repository": "https://github.com/domovou69/claude-kit",
+  "license": "MIT",
+  "keywords": ["git", "branch", "pull-request", "hook"]
+}
