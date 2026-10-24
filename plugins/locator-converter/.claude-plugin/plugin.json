@@ -1,0 +1,11 @@
+{
+  "name": "locator-converter",
+  "description": "Build a trustworthy converter between test locator languages (e.g. XPath to iOS class chain or Android UiSelector): device oracle first, exact/close/skip outcomes, fix loop, scanner, fixed scoring, real-world corpus",
+  "author": {
+    "name": "domovou69",
+    "url": "https://github.com/domovou69"
+  },
+  "repository": "https://github.com/domovou69/claude-kit",
+  "license": "MIT",
+  "keywords": ["locators", "converter", "xpath", "appium", "oracle", "testing"]
+}
