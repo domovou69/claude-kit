@@ -10,6 +10,11 @@
       "name": "git-guard",
       "source": "./plugins/git-guard",
       "description": "Hook: blocks git commit and git push on main/master, except the first commit and first push of a new repository"
+    },
+    {
+      "name": "locator-converter",
+      "source": "./plugins/locator-converter",
+      "description": "Skill build: plan, build and audit a converter between test locator languages (XPath to class chain, UiSelector, …) with a device oracle, exact/close/skip outcomes and fixed scoring"
     }
   ]
 }

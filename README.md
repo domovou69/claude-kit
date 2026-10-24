@@ -9,6 +9,7 @@ Each plugin is one direction; each skill inside it is one task and shows up as `
 | Plugin | Skills / hooks | When to use | Used in |
 | :- | :- | :- | :- |
 | [git-guard](plugins/git-guard) | hook `PreToolUse` on Bash | Always on, every project: blocks `git commit` / `git push` on `main` or `master` except a new repository's first commit and first push. Not for repositories where you commit to `main` on purpose | xpath-to-class-chain, xpath-to-uiselector |
+| [locator-converter](plugins/locator-converter) | skill `locator-converter:build` | Planning, building, auditing or extending a converter between locator languages (XPath → iOS class chain, XPath → Android `UiSelector`): oracle on the real engine first, exact / close / skip outcomes, fix loop, scanner, fixed scoring, real-world corpus. Not for converting a suite with an existing converter, device test runs or LLM benchmarks on their own | xpath-to-class-chain, xpath-to-uiselector |
 
 ## Install
 
