@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="420" viewBox="0 0 1000 420">
+  <!-- dev.to cover, 1000×420; render at 2× with render.sh. Slots in CAPS. Colours: match the article's charts. -->
+  <style>
+    text { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; fill: #1b1f24; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 20px; }
+    .num { font-size: 44px; font-weight: 700; }
+    .label { font-size: 18px; fill: #59636e; }
+    .old { fill: #bc4c00; }
+    .new { fill: #0969da; }
+  </style>
+  <rect width="1000" height="420" fill="#ffffff"/>
+  <rect width="1000" height="10" fill="#0969da"/>
+  <text x="56" y="92" font-size="40" font-weight="700">TITLE, FIRST LINE</text>
+  <text x="56" y="140" font-size="40" font-weight="700">TITLE, SECOND LINE</text>
+  <rect x="56" y="172" width="888" height="92" rx="8" fill="#f6f8fa" stroke="#d1d9e0"/>
+  <text x="80" y="210" class="mono old">BEFORE: A REAL INPUT</text>
+  <text x="80" y="244" class="mono new">AFTER: THE TOOL'S REAL OUTPUT</text>
+  <text x="56" y="340" class="num">N %</text>
+  <text x="56" y="370" class="label">HEADLINE 1 (FROM THE TL;DR)</text>
+  <text x="380" y="340" class="num">N</text>
+  <text x="380" y="370" class="label">HEADLINE 2</text>
+  <text x="700" y="340" class="num">0</text>
+  <text x="700" y="370" class="label">WRONG RESULTS</text>
+</svg>

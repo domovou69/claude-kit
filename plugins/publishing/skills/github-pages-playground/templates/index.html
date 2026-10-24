@@ -1,0 +1,39 @@
+<!doctype html>
+<!-- Copy to site/index.html. Slots: TOOL NAME, one-line purpose, links. Light and dark, no horizontal scroll at 360 px. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TOOL NAME — online</title>
+<meta name="description" content="One line: what goes in, what comes out.">
+<style>
+  :root { --bg: #fff; --fg: #1b1f24; --muted: #59636e; --line: #d1d9e0; --card: #f6f8fa; --exact: #1a7f37; --close: #9a6700; --skip: #cf222e; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #0d1117; --fg: #e6edf3; --muted: #9198a1; --line: #3d444d; --card: #151b23; --exact: #3fb950; --close: #d29922; --skip: #f85149; } }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.5 system-ui, sans-serif; }
+  main { max-width: 860px; margin: 0 auto; padding: 24px 16px; }
+  textarea, pre, code { font: 14px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace; }
+  textarea { width: 100%; min-height: 140px; padding: 10px; background: var(--card); color: var(--fg); border: 1px solid var(--line); border-radius: 6px; }
+  .row { border: 1px solid var(--line); border-radius: 6px; padding: 10px; margin: 10px 0; overflow-wrap: anywhere; }
+  .exact { border-left: 4px solid var(--exact); } .close { border-left: 4px solid var(--close); } .skip { border-left: 4px solid var(--skip); }
+  .muted, footer { color: var(--muted); font-size: 14px; }
+  button { font: inherit; padding: 4px 10px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>TOOL NAME</h1>
+  <p class="muted">One line: what goes in, what comes out. Runs in your browser; nothing is sent anywhere.</p>
+  <p id="examples"></p>
+  <textarea id="input" spellcheck="false" placeholder="One input per line"></textarea>
+  <div id="out" aria-live="polite"></div>
+  <footer>
+    <a href="https://www.npmjs.com/package/PACKAGE">npm</a> ·
+    <a href="https://github.com/OWNER/REPO">GitHub</a> ·
+    <a href="https://github.com/OWNER/REPO/blob/main/docs/reference.md">reference</a>
+  </footer>
+</main>
+<script src="bundle.js"></script>
+<script src="playground.js"></script>
+</body>
+</html>

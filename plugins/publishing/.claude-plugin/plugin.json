@@ -1,0 +1,11 @@
+{
+  "name": "publishing",
+  "description": "Publish a tool without the usual slips: npm releases (short README as the npm page, badge, bin bit, version and tag, user runs npm publish), dev.to articles (format, PNG charts, cover, numbers, links back) and a GitHub Pages playground built from the library itself",
+  "author": {
+    "name": "domovou69",
+    "url": "https://github.com/domovou69"
+  },
+  "repository": "https://github.com/domovou69/claude-kit",
+  "license": "MIT",
+  "keywords": ["npm", "release", "dev.to", "article", "github-pages", "playground", "hook"]
+}

@@ -25,6 +25,11 @@
       "name": "llm-benchmark",
       "source": "./plugins/llm-benchmark",
       "description": "Skill llm-vs-tool + hook: compare LLMs against a deterministic tool — isolated chunked runs with --resume, one prompt, the tool as 100 %, WRONG on its own line, cost and time per run, effort at most xhigh"
+    },
+    {
+      "name": "publishing",
+      "source": "./plugins/publishing",
+      "description": "Skills npm-release, devto-article, github-pages-playground + hook: README as the npm page, bin bit, bump PR from main, tag and GitHub release on publish day; dev.to format, PNG charts, cover, nothing unreleased, link back; a Pages playground built from the library with a parity check; only the user runs npm publish"
     }
   ]
 }
