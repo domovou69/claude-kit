@@ -1,0 +1,11 @@
+{
+  "name": "mobile-test-runs",
+  "description": "Run device tests and timing benchmarks on an iOS simulator, a real iPhone or an Android emulator without wasted runs: power and Low Power Mode, caffeinate, headless emulator, devices only with consent, background runs with a monitor and --resume",
+  "author": {
+    "name": "domovou69",
+    "url": "https://github.com/domovou69"
+  },
+  "repository": "https://github.com/domovou69/claude-kit",
+  "license": "MIT",
+  "keywords": ["appium", "ios", "android", "simulator", "emulator", "benchmark", "hook"]
+}
