@@ -219,22 +219,64 @@ test('a bug shows its title; the description opens on click; P1 is open; a row w
   assert.match(html, /<div class="issue p3"><div class="row-plain">/);
 });
 
-test('the stage list: statuses, importance, blocker, info box, filter data; no importance on done stages', () => {
+test('the stage list: statuses, importance on every row, blocker, info box under the row, filter data', () => {
   const html = p.render(PLAN, []);
   assert.match(html, /<span class="st st-postponed">Postponed<\/span>/);
-  assert.match(html, /<span class="imp imp-low">low<\/span>/);
+  assert.match(html, /<span class="imp imp-low" title="Importance: low"/);
+  assert.match(html, /<span class="imp imp-high"[^>]*><span class="bars"><i><\/i><i><\/i><i><\/i><\/span>high<\/span>/);
   assert.match(html, /Blocked by: Oracle/, 'a stage id becomes the stage title');
-  assert.match(html, /<b>Dates<\/b> 2026-10-01 → 2026-10-03 \(3 days\)/);
-  assert.match(html, /<b>AI work<\/b> 20 min · 3 % of a 5-hour window/);
   assert.match(html, /<li data-status="done" data-id="s4" data-rank="0" data-finished="2026-10-09">/);
   assert.match(html, /<option value="from:s0">From: Scaffold<\/option>/);
   assert.match(html, /<button class="act from" type="button" data-id="s4"/);
-  const done = copy();
-  done.stages[0].importance = 'high';
-  assert.ok(!/imp imp-high">high<\/span><\/span><\/span><span class="actions/.test(p.render(done, [])) || true);
   assert.match(html, /<div class="toolbar" hidden>/, 'filters stay hidden until the script runs');
   assert.match(html, /data-age-of="2026-10-25"/);
   assert.match(html, /var ageLabel = function ageLabel\(days\)/, 'the age function is copied into the page');
+  // A stage with a body: a clickable row, then the info box, then the body; open without the script.
+  assert.match(html, /<div class="row clickable" role="button" tabindex="0" aria-expanded="true" data-open="1">[\s\S]*?<\/div><div class="info-box" id="info-s1" hidden>[\s\S]*?<\/div><div class="stage-body">/);
+});
+
+test('info: a stage that is not done shows its estimate, a done stage what it really took', () => {
+  const html = p.render(PLAN, []);
+  assert.match(html, /<b>Dates<\/b> 2026-10-01 → 2026-10-03 \(3 days\)/);
+  assert.match(html, /<b>Actual<\/b> 20 min · 3 % of a 5-hour window/);
+  assert.ok(!html.includes('<b>Estimate</b> 30 min'), 'the estimate of a done stage with an actual is replaced');
+  assert.match(html, /<b>Estimate<\/b> 60 min · 12 % of a 5-hour window/);
+  const onlyEstimate = copy();
+  delete onlyEstimate.stages[0].actual;
+  assert.match(p.render(onlyEstimate, []), /<b>Estimate<\/b> 30 min · 5 % of a 5-hour window \(actual not recorded\)/);
+  const running = copy();
+  running.stages[1].actual = { minutes: 15 };
+  assert.match(p.render(running, []), /<b>Spent so far<\/b> 15 min/);
+});
+
+test('status chips: All on, the others off and drawn only for statuses that exist', () => {
+  const html = p.render(PLAN, []);
+  assert.match(html, /<button class="chip-f" type="button" aria-pressed="true" data-key="all">All <span class="n">5<\/span><\/button>/);
+  assert.match(html, /aria-pressed="false" data-key="blocked"><span class="dot dot-blocked"><\/span>Blocked <span class="n">1<\/span>/);
+  assert.ok(!html.includes('data-key="next"'), 'no next stage, no chip');
+  assert.ok(!/class="hidden-note"[^>]*><[^>]*button/.test(html), 'the caption has no "Show all" button');
+});
+
+test('bug chips show counts and are drawn only for priorities that exist', () => {
+  const rows = p.parseIssues('| Priority | Title | Details |\n|---|---|---|\n| P2 | A | a |\n| P3 | B | b |\n| P3 | C | c |\n').rows;
+  const html = p.render(PLAN, rows);
+  assert.match(html, /data-key="all">All <span class="n">3<\/span>/);
+  assert.match(html, /data-key="P3"><span class="dot dot-p3"><\/span>P3 <span class="n">2<\/span>/);
+  assert.ok(!html.includes('data-key="P1"'), 'no P1 bugs, no P1 chip');
+  assert.match(html, /<li data-priority="P2">/);
+  const one = p.render(PLAN, p.parseIssues('| Priority | Title | Details |\n|---|---|---|\n| P3 | B | b |\n').rows);
+  assert.ok(!one.includes('aria-label="Filter by priority"'), 'one priority needs no filter');
+});
+
+test('where we are and next take a line or a list of points', () => {
+  const list = copy();
+  list.here.stage = ['One', 'Two `code`'];
+  assert.deepStrictEqual(p.validatePlan(list), []);
+  const html = p.render(list, []);
+  assert.match(html, /<ul class="points"><li>One<\/li><li>Two <code>code<\/code><\/li><\/ul>/);
+  assert.match(html, /<span>Review the PR<\/span>/);
+  list.here.next = [];
+  assert.match(p.validatePlan(list).join('\n'), /here: expected \{ stage, next \}/);
 });
 
 test('no issues file means "No known issues"', () => {

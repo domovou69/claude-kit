@@ -73,7 +73,8 @@ function validatePlan(plan) {
   if (!isStr(plan.project)) errors.push('project: expected a non-empty string');
   if (plan.repo !== undefined && !(isStr(plan.repo) && /^[\w.-]+\/[\w.-]+$/.test(plan.repo))) errors.push('repo: expected "owner/name"');
   if (!isDay(plan.updated)) errors.push('updated: expected a real date YYYY-MM-DD');
-  if (plan.here === null || typeof plan.here !== 'object' || !isStr(plan.here.stage) || !isStr(plan.here.next)) errors.push('here: expected { stage, next } with one line each');
+  const points = (v) => isStr(v) || (Array.isArray(v) && v.length > 0 && v.every(isStr));
+  if (plan.here === null || typeof plan.here !== 'object' || !points(plan.here.stage) || !points(plan.here.next)) errors.push('here: expected { stage, next }, each a line or a list of short points');
 
   if (!Array.isArray(plan.dod) || !plan.dod.length) errors.push('dod: expected a non-empty list (no Definition of Done, no stop criterion)');
   else {
@@ -222,16 +223,24 @@ function ageLabel(days) {
 const spanDays = (from, to) => Math.round((Date.UTC(...to.split('-').map((v, i) => (i === 1 ? v - 1 : +v))) - Date.UTC(...from.split('-').map((v, i) => (i === 1 ? v - 1 : +v)))) / 86400000) + 1;
 const plural = (n, unit) => `${n} ${unit}${n === 1 ? '' : 's'}`;
 
-// The lines behind the info button: when, how long the AI worked, how much of the window, the estimate.
+// The lines behind the info button. A stage that is not done shows its estimate; a done stage shows what it really
+// took (and says so when only the estimate was recorded).
 function infoLines(s) {
   const lines = [];
   if (s.started && s.finished) lines.push(`<span><b>Dates</b> ${esc(s.started)} → ${esc(s.finished)} (${plural(spanDays(s.started, s.finished), 'day')})</span>`);
   else if (s.finished) lines.push(`<span><b>Finished</b> ${esc(s.finished)}</span>`);
   else if (s.started) lines.push(`<span><b>Started</b> ${esc(s.started)}</span>`);
   const act = own(s, 'actual');
-  if (act && (act.minutes || act.window_pct)) lines.push(`<span><b>AI work</b> ${[act.minutes ? fmtMin(act.minutes) : '', act.window_pct ? `${fmt(act.window_pct)} % of a 5-hour window` : ''].filter(Boolean).join(' · ')}</span>`);
   const est = own(s, 'estimate');
-  if (est && (est.minutes || est.window_pct)) lines.push(`<span><b>Estimate</b> ${[est.minutes ? fmtMin(est.minutes) : '', est.window_pct ? `${fmt(est.window_pct)} %` : ''].filter(Boolean).join(' · ')}</span>`);
+  const has = (a) => a && (a.minutes || a.window_pct);
+  const text = (a) => [a.minutes ? fmtMin(a.minutes) : '', a.window_pct ? `${fmt(a.window_pct)} % of a 5-hour window` : ''].filter(Boolean).join(' · ');
+  if (s.status === 'done') {
+    if (has(act)) lines.push(`<span><b>Actual</b> ${text(act)}</span>`);
+    else if (has(est)) lines.push(`<span><b>Estimate</b> ${text(est)} (actual not recorded)</span>`);
+  } else {
+    if (has(est)) lines.push(`<span><b>Estimate</b> ${text(est)}</span>`);
+    if (has(act)) lines.push(`<span><b>Spent so far</b> ${text(act)}</span>`);
+  }
   return lines;
 }
 
@@ -240,13 +249,15 @@ function blockerText(plan, by) {
   return hit ? hit.title : by;
 }
 
-// One row: status, title with importance and PR, the blocker, the buttons; the info box sits under it.
+const importanceMark = (level) => `<span class="imp imp-${level}" title="Importance: ${level}" aria-label="Importance: ${level}"><span class="bars"><i></i><i></i><i></i></span>${level}</span>`;
+
+// One row: status, title with importance and PR, the blocker, the buttons; the info box sits right under it.
 function rowParts(plan, s, extraActions) {
   const lines = infoLines(s);
   const infoId = `info-${s.id}`.replace(/[^\w-]/g, '_');
-  const imp = s.importance && s.status !== 'done' ? `<span class="imp imp-${s.importance}">${s.importance}</span>` : '';
+  const imp = s.importance ? importanceMark(s.importance) : '';
   const blocked = s.status === 'blocked' ? `<span class="blocked-by">Blocked by: ${esc(blockerText(plan, s.blocked_by))}</span>` : '';
-  const buttons = (lines.length ? `<button class="act info" type="button" aria-label="Dates, AI time and estimate" aria-expanded="false" aria-controls="${esc(infoId)}">i</button>` : '') + (extraActions || '');
+  const buttons = (lines.length ? `<button class="act info" type="button" aria-label="Dates, time and estimate" aria-expanded="false" aria-controls="${esc(infoId)}">i</button>` : '') + (extraActions || '');
   const head = `${statusMark(s.status)}<span class="title"><span class="line"><span>${esc(s.title)}</span>${imp}${prLink(plan, s.pr)}</span>${blocked}</span>${buttons ? `<span class="actions">${buttons}</span>` : '<span></span>'}`;
   const box = lines.length ? `<div class="info-box" id="${esc(infoId)}" hidden>${lines.join('')}</div>` : '';
   return { head, box };
@@ -268,6 +279,8 @@ function orderStages(stages) {
   return [...rest, ...done].map((x) => ({ stage: x.s, rank: rank.has(x.s) ? rank.get(x.s) : null }));
 }
 
+// A stage with a body opens and closes on a click of its row (the page script collapses it; without the script it is
+// open), and the info box stays right under the row in both states.
 function renderStage(plan, s, rank) {
   const kids = s.children && s.children.length ? `<ul class="children">${s.children.map((c) => renderChild(plan, c)).join('')}</ul>` : '';
   const body = [s.note ? `<p class="note">${inline(s.note)}</p>` : '', kids, promptBlock(s.prompt)].filter(Boolean).join('');
@@ -275,9 +288,9 @@ function renderStage(plan, s, rank) {
   const { head, box } = rowParts(plan, s, from);
   const attrs = `data-status="${s.status}" data-id="${esc(s.id)}"${rank !== null ? ` data-rank="${rank}"` : ''}${s.finished ? ` data-finished="${esc(s.finished)}"` : ''}`;
   const now = s.status === 'now' ? ' is-now' : '';
-  const open = s.status === 'now' || s.status === 'next' ? ' open' : '';
-  if (!body) return `<li ${attrs}><div class="stage${now}"><div class="row">${head}</div>${box}</div></li>`;
-  return `<li ${attrs}><div class="stage${now}"><details${open}><summary class="row">${head}</summary><div class="stage-body">${body}</div></details>${box}</div></li>`;
+  const open = s.status === 'now' || s.status === 'next';
+  const row = body ? `<div class="row clickable" role="button" tabindex="0" aria-expanded="true" data-open="${open ? 1 : 0}">${head}</div>` : `<div class="row">${head}</div>`;
+  return `<li ${attrs}><div class="stage${now}">${row}${box}${body ? `<div class="stage-body">${body}</div>` : ''}</div></li>`;
 }
 
 function renderGoal(g) {
@@ -303,37 +316,55 @@ function renderIssue(x) {
   const body = [x.item && x.item !== title ? `<p>${inline(x.item)}</p>` : '', meta ? `<div class="meta">${meta}</div>` : ''].filter(Boolean).join('');
   const p = x.priority.toLowerCase();
   const head = `<span class="chip chip-${p}">${x.priority}</span><span class="ititle">${inline(title)}</span>`;
-  if (!body) return `<li><div class="issue ${p}"><div class="row-plain">${head}</div></div></li>`;
-  return `<li><details class="issue ${p}"${x.priority === 'P1' ? ' open' : ''}><summary>${head}</summary><div class="ibody">${body}</div></details></li>`;
+  if (!body) return `<li data-priority="${x.priority}"><div class="issue ${p}"><div class="row-plain">${head}</div></div></li>`;
+  return `<li data-priority="${x.priority}"><details class="issue ${p}"${x.priority === 'P1' ? ' open' : ''}><summary>${head}</summary><div class="ibody">${body}</div></details></li>`;
+}
+
+// "All" is on at first; the other chips are off. Choosing one turns All off and several may be on; choosing All turns
+// the others off. The chips of a group that is not there (no P1 bugs, no blocked stages) are not drawn.
+function filterChips(label, total, entries) {
+  const all = `<button class="chip-f" type="button" aria-pressed="true" data-key="all">All <span class="n">${total}</span></button>`;
+  const rest = entries.map(([key, text, count, mark]) => `<button class="chip-f" type="button" aria-pressed="false" data-key="${esc(key)}"><span class="dot ${mark}"></span>${esc(text)} <span class="n">${count}</span></button>`).join('');
+  return `<div class="chips" role="group" aria-label="${esc(label)}">${all}${rest}</div>`;
 }
 
 function renderStages(plan) {
   const ordered = orderStages(plan.stages);
   const count = (st) => plan.stages.filter((s) => s.status === st).length;
-  const chips = STATUS_ORDER.filter((st) => count(st)).map((st) => `<button class="chip-f" type="button" aria-pressed="true" data-status="${st}">${STATUS_LABEL[st]} <span class="n">${count(st)}</span></button>`).join('');
+  const present = STATUS_ORDER.filter((st) => count(st));
   const done = ordered.filter((o) => o.rank !== null);
   const options = '<optgroup label="By date"><option value="last:3" selected>Last 3 stages</option><option value="days:7">Last 7 days</option><option value="days:30">Last 30 days</option><option value="days:90">Last 90 days</option><option value="all">All</option></optgroup>'
     + (done.length ? `<optgroup label="From stage">${done.map((o) => `<option value="from:${esc(o.stage.id)}">From: ${esc(o.stage.title)}</option>`).join('')}</optgroup>` : '');
   // The toolbar stays hidden until the page script runs: without it every stage is visible.
-  const toolbar = `<div class="toolbar" hidden><div class="chips" role="group" aria-label="Filter by status">${chips}</div>${done.length ? `<label class="done-since">Done since <select>${options}</select></label>` : ''}</div>`;
-  const note = '<p class="hidden-note" hidden><span class="count"></span><button type="button">Show all</button></p>';
-  return `${done.length ? toolbar : ''}<ul class="stages">${ordered.map((o) => renderStage(plan, o.stage, o.rank)).join('')}</ul>${done.length ? note : ''}`;
+  const chips = present.length > 1 ? filterChips('Filter by status', plan.stages.length, present.map((st) => [st, STATUS_LABEL[st], count(st), `dot-${st}`])) : '';
+  const since = done.length ? `<label class="done-since">Done since <select>${options}</select></label>` : '';
+  const toolbar = chips || since ? `<div class="toolbar" hidden>${chips}${since}</div>` : '';
+  const note = done.length ? '<p class="hidden-note" hidden></p>' : '';
+  return `${toolbar}<ul class="stages">${ordered.map((o) => renderStage(plan, o.stage, o.rank)).join('')}</ul>${note}`;
 }
+
+function renderIssues(issues) {
+  if (!issues.length) return '<p class="empty">No known issues.</p>';
+  const present = PRIORITIES.filter((pr) => issues.some((x) => x.priority === pr));
+  const chips = present.length > 1 ? `<div class="toolbar" hidden>${filterChips('Filter by priority', issues.length, present.map((pr) => [pr, pr, issues.filter((x) => x.priority === pr).length, `dot-${pr.toLowerCase()}`]))}</div>` : '';
+  return `${chips}<ul class="issues">${issues.map(renderIssue).join('')}</ul>`;
+}
+
+// A line, or a list of short points.
+const points = (v) => (Array.isArray(v) ? `<ul class="points">${v.map((x) => `<li>${inline(x)}</li>`).join('')}</ul>` : `<span>${inline(v)}</span>`);
 
 function renderBody(plan, issues) {
   const t = totals(plan.stages);
   const sum = (a) => [a.minutes ? fmtMin(a.minutes) : '', a.window_pct ? `${fmt(a.window_pct)} % of a window` : ''].filter(Boolean).join(' · ');
   const n = plan.stages.length;
   const totalLine = [t.estimate.n ? `planned ${sum(t.estimate)} (${t.estimate.n} of ${n} stages)` : '', t.actual.n ? `spent ${sum(t.actual)} (${t.actual.n} of ${n})` : ''].filter(Boolean).join(' &nbsp;|&nbsp; ');
-  const counts = PRIORITIES.map((p) => `${p} ${issues.filter((x) => x.priority === p).length}`).join(' · ');
   const parts = [
     `<header class="top"><div class="top-line"><h1>${esc(plan.project)}</h1><span class="updated">Updated ${esc(plan.updated)} <span class="age" data-age-of="${esc(plan.updated)}"></span></span></div>`
-    + `<div class="where"><div class="here"><span class="k">Where we are</span><span class="v">${inline(plan.here.stage)}</span></div>`
-    + `<div class="next"><span class="k">Next</span><span class="v">${inline(plan.here.next)}</span></div></div></header>`,
+    + `<div class="where"><div class="here"><span class="k">Where we are</span><div class="v">${points(plan.here.stage)}</div></div>`
+    + `<div class="next"><span class="k">Next</span><div class="v">${points(plan.here.next)}</div></div></div></header>`,
     `<section class="panel panel-dod"><h2>Definition of Done</h2><div class="dod">${plan.dod.map(renderGoal).join('')}</div></section>`,
     `<section class="panel panel-stages"><h2><span>Stages</span>${totalLine ? `<span class="sum">${totalLine}</span>` : ''}</h2>${renderStages(plan)}</section>`,
-    `<section class="panel panel-bugs"><h2><span>Found bugs</span><span class="sum counts">${counts}</span></h2>`
-    + (issues.length ? `<ul class="issues">${issues.map(renderIssue).join('')}</ul>` : '<p class="empty">No known issues.</p>') + '</section>',
+    `<section class="panel panel-bugs"><h2>Found bugs</h2>${renderIssues(issues)}</section>`,
   ];
   if (plan.undecided && plan.undecided.length) {
     parts.push(`<section class="panel panel-undecided"><h2>New and undecided</h2><ul class="undecided">${plan.undecided.map((u) => `<li><span>${inline(u.text)}</span>${u.recommended ? `<span class="rec"><b>Recommended:</b> ${inline(u.recommended)}</span>` : ''}</li>`).join('')}</ul></section>`);

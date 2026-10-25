@@ -4,8 +4,8 @@
   "repo": "<owner>/<name>",
   "updated": "<YYYY-MM-DD>",
   "here": {
-    "stage": "<where we are: the stage and its state, one line>",
-    "next": "<the next step and who does it, one line>"
+    "stage": ["<where we are: the stage and its state>", "<one more fact, if there is one>"],
+    "next": ["<the next step and who does it>"]
   },
   "dod": [
     {

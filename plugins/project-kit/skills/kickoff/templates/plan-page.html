@@ -50,7 +50,7 @@
     });
   });
 
-  // The info button opens the dates, AI time and estimate of a row. It sits inside a <summary>, so it must not toggle it.
+  // The info button opens the dates, the time and the estimate of a row, right under it.
   document.querySelectorAll('.act.info').forEach(function (btn) {
     btn.addEventListener('click', function (e) {
       e.preventDefault();
@@ -62,63 +62,109 @@
     });
   });
 
-  // Stage filters: status chips, and "Done since" for the done stages. Without this script every stage is visible.
-  var toolbar = document.querySelector('.toolbar');
-  if (!toolbar) return;
-  toolbar.hidden = false;
-  var rows = Array.prototype.slice.call(document.querySelectorAll('.stages > li[data-status]'));
-  var select = toolbar.querySelector('select');
-  var note = document.querySelector('.hidden-note');
-  var chips = Array.prototype.slice.call(toolbar.querySelectorAll('.chip-f'));
-  var fromButtons = Array.prototype.slice.call(document.querySelectorAll('.act.from'));
-  var on = {};
-  chips.forEach(function (c) { on[c.getAttribute('data-status')] = true; });
-
-  function doneVisible(li, mode) {
-    var rank = +li.getAttribute('data-rank');
-    var kind = mode.split(':')[0];
-    var arg = mode.slice(kind.length + 1);
-    if (kind === 'all') return true;
-    if (kind === 'last') return rank < +arg;
-    if (kind === 'days') { var f = li.getAttribute('data-finished'); return !!f && ageDays(f) <= +arg; }
-    if (kind === 'from') {
-      var target = rows.filter(function (r) { return r.getAttribute('data-id') === arg; })[0];
-      return !!target && rank <= +target.getAttribute('data-rank');
-    }
-    return true;
-  }
-
-  function apply() {
-    var hiddenDone = 0;
-    rows.forEach(function (li) {
-      var status = li.getAttribute('data-status');
-      var show = on[status];
-      if (show && status === 'done' && !doneVisible(li, select.value)) { show = false; hiddenDone++; }
-      li.hidden = !show;
+  // A stage with a body opens and closes on a click of its row; now and next stages start open.
+  document.querySelectorAll('.row.clickable').forEach(function (row) {
+    var body = row.parentNode.querySelector('.stage-body');
+    function set(open) { body.hidden = !open; row.setAttribute('aria-expanded', String(open)); }
+    set(row.getAttribute('data-open') === '1');
+    row.addEventListener('click', function (e) {
+      if (e.target.closest('a, button')) return;
+      set(body.hidden);
     });
-    note.hidden = hiddenDone === 0;
-    note.querySelector('.count').textContent = hiddenDone + (hiddenDone === 1 ? ' older done stage is hidden. ' : ' older done stages are hidden. ');
-    fromButtons.forEach(function (b) { b.classList.toggle('on', select.value === 'from:' + b.getAttribute('data-id')); });
-  }
-
-  chips.forEach(function (c) {
-    c.addEventListener('click', function () {
-      var s = c.getAttribute('data-status');
-      on[s] = !on[s];
-      c.setAttribute('aria-pressed', String(on[s]));
-      apply();
-    });
-  });
-  select.addEventListener('change', apply);
-  note.querySelector('button').addEventListener('click', function () { select.value = 'all'; apply(); });
-  fromButtons.forEach(function (b) {
-    b.addEventListener('click', function (e) {
+    row.addEventListener('keydown', function (e) {
+      if (e.target !== row || (e.key !== 'Enter' && e.key !== ' ')) return;
       e.preventDefault();
-      e.stopPropagation();
-      select.value = 'from:' + b.getAttribute('data-id');
-      apply();
+      set(body.hidden);
     });
   });
-  apply();
+
+  // Filter chips: "All" is on at first and the others are off. A click on another chip turns it on and All off (several
+  // can be on); a click on All turns the others off; turning the last one off brings All back.
+  function chipGroup(group, onChange) {
+    var chips = Array.prototype.slice.call(group.querySelectorAll('.chip-f'));
+    var all = chips.filter(function (c) { return c.getAttribute('data-key') === 'all'; })[0];
+    var rest = chips.filter(function (c) { return c !== all; });
+    function on(c) { return c.getAttribute('aria-pressed') === 'true'; }
+    function set(c, v) { c.setAttribute('aria-pressed', String(v)); }
+    all.addEventListener('click', function () { rest.forEach(function (c) { set(c, false); }); set(all, true); onChange(); });
+    rest.forEach(function (c) {
+      c.addEventListener('click', function () {
+        set(c, !on(c));
+        set(all, !rest.some(on));
+        onChange();
+      });
+    });
+    return { shows: function (key) { return on(all) || rest.some(function (c) { return c.getAttribute('data-key') === key && on(c); }); } };
+  }
+
+  // Stages: status chips and "Done since" for the done stages. Without this script every stage is visible.
+  var stagePanel = document.querySelector('.panel-stages');
+  var stageToolbar = stagePanel && stagePanel.querySelector('.toolbar');
+  if (stageToolbar) {
+    stageToolbar.hidden = false;
+    var rows = Array.prototype.slice.call(stagePanel.querySelectorAll('.stages > li[data-status]'));
+    var select = stageToolbar.querySelector('select');
+    var note = stagePanel.querySelector('.hidden-note');
+    var statusChips = stageToolbar.querySelector('.chips');
+    var fromButtons = Array.prototype.slice.call(stagePanel.querySelectorAll('.act.from'));
+    var group = statusChips ? chipGroup(statusChips, apply) : { shows: function () { return true; } };
+
+    var doneVisible = function (li, mode) {
+      var rank = +li.getAttribute('data-rank');
+      var kind = mode.split(':')[0];
+      var arg = mode.slice(kind.length + 1);
+      if (kind === 'all') return true;
+      if (kind === 'last') return rank < +arg;
+      if (kind === 'days') { var f = li.getAttribute('data-finished'); return !!f && ageDays(f) <= +arg; }
+      if (kind === 'from') {
+        var target = rows.filter(function (r) { return r.getAttribute('data-id') === arg; })[0];
+        return !!target && rank <= +target.getAttribute('data-rank');
+      }
+      return true;
+    };
+
+    function apply() {
+      var hiddenDone = 0;
+      rows.forEach(function (li) {
+        var status = li.getAttribute('data-status');
+        var show = group.shows(status);
+        if (show && status === 'done' && select && !doneVisible(li, select.value)) { show = false; hiddenDone++; }
+        li.hidden = !show;
+      });
+      if (note) {
+        note.hidden = hiddenDone === 0;
+        note.textContent = hiddenDone + (hiddenDone === 1 ? ' older done stage is hidden.' : ' older done stages are hidden.');
+      }
+      // The button of the stage the filter starts from turns into "Show all".
+      fromButtons.forEach(function (b) {
+        var active = !!select && select.value === 'from:' + b.getAttribute('data-id');
+        b.classList.toggle('on', active);
+        b.textContent = active ? 'Show all' : 'From here';
+        b.title = active ? 'Show every done stage again' : 'Hide the done stages older than this one';
+      });
+    }
+
+    if (select) select.addEventListener('change', apply);
+    fromButtons.forEach(function (b) {
+      b.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        select.value = b.classList.contains('on') ? 'all' : 'from:' + b.getAttribute('data-id');
+        apply();
+      });
+    });
+    apply();
+  }
+
+  // Found bugs: priority chips with counts.
+  var bugPanel = document.querySelector('.panel-bugs');
+  var bugToolbar = bugPanel && bugPanel.querySelector('.toolbar');
+  if (bugToolbar) {
+    bugToolbar.hidden = false;
+    var bugs = Array.prototype.slice.call(bugPanel.querySelectorAll('.issues > li[data-priority]'));
+    var bugGroup = chipGroup(bugToolbar.querySelector('.chips'), function () {
+      bugs.forEach(function (li) { li.hidden = !bugGroup.shows(li.getAttribute('data-priority')); });
+    });
+  }
 })();
 </script>
