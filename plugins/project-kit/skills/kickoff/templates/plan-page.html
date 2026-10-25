@@ -1,0 +1,40 @@
+<title>{{TITLE}}</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+{{CSS}}
+</style>
+<div class="page">
+{{BODY}}
+</div>
+<script>
+document.querySelectorAll('.copy').forEach(function (btn) {
+  btn.addEventListener('click', function () {
+    var wrap = btn.closest('.prompt-wrap');
+    var pre = wrap.querySelector('.prompt');
+    var text = pre.textContent;
+    var done = function () {
+      btn.classList.add('ok');
+      btn.textContent = 'Copied';
+      setTimeout(function () { btn.classList.remove('ok'); btn.textContent = 'Copy stage prompt'; }, 2000);
+    };
+    var fallback = function () {
+      var details = wrap.querySelector('details');
+      if (details) details.open = true;
+      var range = document.createRange();
+      range.selectNodeContents(pre);
+      var sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+      btn.textContent = 'Select and copy below';
+    };
+    try {
+      navigator.clipboard.writeText(text).then(done, fallback);
+    } catch (e) {
+      fallback();
+    }
+  });
+});
+</script>

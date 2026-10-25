@@ -10,18 +10,26 @@ needs it.
 
 ## What the skills give you
 
-- **kickoff**: seven rules (health check before the plan; PLAN.md before code with an estimate per stage; rules in
+- **kickoff**: eight rules (health check before the plan; PLAN.md before code with an estimate per stage; rules in
   their layer, never copied; propose the kit's plugins, third-party ones only for a noticeable gain; review the plan
   against the previous project; decisions into PLAN.md the turn they are made; no private data in a public
-  repository), a 10-step workflow, references ([health check](skills/kickoff/references/health-check.md),
-  [plugins](skills/kickoff/references/plugins.md)), templates with empty slots
-  ([PLAN.md](skills/kickoff/templates/PLAN.md), [CLAUDE.md](skills/kickoff/templates/CLAUDE.md)) and two scripts:
+  repository; the stop criterion written before code: Definition of Done, out of scope, architecture, budgets, stage-end
+  question, maintenance triggers), a 10-step workflow, references ([health check](skills/kickoff/references/health-check.md),
+  [plugins](skills/kickoff/references/plugins.md), [plan page](skills/kickoff/references/plan-page.md)), templates with
+  empty slots ([PLAN.md](skills/kickoff/templates/PLAN.md), [CLAUDE.md](skills/kickoff/templates/CLAUDE.md),
+  [plan.json](skills/kickoff/templates/plan.json), [known-issues.md](skills/kickoff/templates/known-issues.md)), the
+  [design system](skills/kickoff/templates/plan-design.css) of the plan page and three scripts:
   - [`kit-inventory.js`](skills/kickoff/scripts/kit-inventory.js): the kit's plugins with their skills and hooks,
     whether each is enabled at user or project scope, and the signals found in the project (an npm package, mobile
     test dependencies, an `llm/` folder, locator code, no `PLAN.md` yet);
   - [`kickoff-check.js`](skills/kickoff/scripts/kickoff-check.js): health check first with a verdict, a stage table
-    with estimates, a total, a cheaper path, a decisions section, no template slots left, no personal rules copied
-    into the project `CLAUDE.md`, no device ids, tokens, e-mail addresses or local paths.
+    with estimates, a total, a cheaper path, a decisions section, no template slots left, a Definition of Done and an
+    out-of-scope section, no personal rules copied into the project `CLAUDE.md`, no device ids, tokens, e-mail
+    addresses or local paths;
+  - [`plan-page.js`](skills/kickoff/scripts/plan-page.js): `docs/plan.json` (validated, every problem listed) and
+    `docs/known-issues.md` into one HTML file for the Artifact tool: Definition of Done with progress, stages with
+    status, estimate, actual and a "Copy stage prompt" button, found bugs with P1 in red on top, what is undecided.
+    Text is escaped; light and dark themes; phone width.
 - **retro**: six rules (every feedback memory ends in one layer; said twice → written, broken again → hook candidate;
   one copy of each rule; unused skills fixed or removed; kit changes as one PR, changes outside it only after "yes";
   anonymized), an 8-step workflow, references ([triage](skills/retro/references/triage.md),
@@ -47,7 +55,7 @@ must always hold, which a retro finds, become hooks in the plugin they belong to
 ## Test
 
 From the repository root: `node --test` (both kickoff scripts on throwaway kits and projects, the shipped templates,
-and the retro scan on a throwaway projects folder). [tests/past-mistakes.md](tests/past-mistakes.md) replays 15 real
+and the retro scan on a throwaway projects folder). [tests/past-mistakes.md](tests/past-mistakes.md) replays 16 real
 mistakes from starting and running three projects; each must map to a skill item, a check or a scan output.
 
 ## Install

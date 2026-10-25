@@ -34,6 +34,12 @@ deprecated after eleven PRs, a plan copied the order that had cost the last proj
 7. **A public repository holds no private data.** No device ids (UDID, serial), team or signing ids, bundle ids of
    private apps, tokens, local paths or e-mail addresses in committed files; they go to a git-ignored local file the
    project `CLAUDE.md` points to.
+8. **The stop criterion is written before the code.** PLAN.md has a Definition of Done (measurable goals, each with a
+   target and the highest value it can reach; reaching the target is the stop), an out-of-scope list, the architecture
+   (module borders and shared primitives), budgets (stages, one review round per change set, the share of a window), a
+   stage-end question ("did a metric in the Definition of Done move? no: close the stage, the findings go to
+   `docs/known-issues.md`") and the triggers of maintenance mode. A project with no stop criterion keeps fixing for
+   its own sake: the converter project spent fifteen PRs on reviews that moved no number.
 
 ## Workflow
 
@@ -44,11 +50,11 @@ deprecated after eleven PRs, a plan copied the order that had cost the last proj
 | 2 | Kit inventory | `node scripts/kit-inventory.js --project <dir>`: kit plugins, their skills and hooks, enabled or not, signals found in the project. Propose what fits (rule 4); the user picks |
 | 3 | Previous project | What carries over (code, tools, recipes from its memory) and what cost it most (rule 5) |
 | 4 | Estimate | "≈N min, ≈X % of the window" for writing the plan itself, then wait for "yes" |
-| 5 | PLAN.md | From the domain skill's plan template when one fits (`locator-converter:build`, `llm-benchmark:llm-vs-tool`), otherwise [templates/PLAN.md](templates/PLAN.md): health check first, stages with estimates, total, cheaper path, decisions, lessons |
+| 5 | PLAN.md | From the domain skill's plan template when one fits (`locator-converter:build`, `llm-benchmark:llm-vs-tool`), otherwise [templates/PLAN.md](templates/PLAN.md): health check first, then Definition of Done, out of scope, architecture, budgets (rule 8), stages with estimates, total, cheaper path, stage-end criterion, maintenance triggers, decisions, lessons |
 | 6 | CLAUDE.md | [templates/CLAUDE.md](templates/CLAUDE.md): project parameters and project-only rules, links to the skills in use; nothing from `~/.claude/CLAUDE.md` |
-| 7 | Check | `node scripts/kickoff-check.js <dir>`: no FAIL (health check verdict, stage estimates, empty slots, copied personal rules, private data) |
+| 7 | Check | `node scripts/kickoff-check.js <dir>`: no FAIL (health check verdict, stage estimates, empty slots, copied personal rules, private data); no WARN about the Definition of Done or out-of-scope sections |
 | 8 | Plan PR | Repository created only after the user agrees (public or private is the user's call); the first commit of a new repository may go to `main`, the plan goes in a branch and a PR; the user merges |
-| 9 | Memory and handoff | A project memory file (goal, decisions, status, next stage); then the model + effort for stage 1, whether it needs a new window, and its prompt |
+| 9 | Memory and handoff | A project memory file (goal, decisions, status, next stage); `docs/plan.json` and `docs/known-issues.md` from the templates and the plan page published as a private Artifact ([plan page](references/plan-page.md)); then the model + effort for stage 1, whether it needs a new window, and its prompt |
 
 ## Shapes that come up
 
@@ -59,7 +65,14 @@ deprecated after eleven PRs, a plan copied the order that had cost the last proj
 - **A pivot inside a running project**: run steps 1–5 for the new part only and add it to the existing PLAN.md as a
   new section; the project `CLAUDE.md` changes only if a parameter changes.
 
+## The plan page
+
+One private page per project shows where the project is: the Definition of Done with its progress, the stages with
+status, estimate, actual and a button that copies the stage prompt, the found bugs from `docs/known-issues.md` (P1 in
+red on top) and what is new or undecided. Update `docs/plan.json` at the end of every stage, build the page with
+`node scripts/plan-page.js <project> --out <file>` and publish it to the same Artifact URL. How: [plan page](references/plan-page.md).
+
 ## When you finish
 
-Say what the user has to decide or merge next, the model + effort for stage 1, and whether it needs a new window; if
+Say in one line where the project is (the page's header) and what the user has to decide or merge next, the model + effort for stage 1, and whether it needs a new window; if
 it does, update memory first, then give the prompt.

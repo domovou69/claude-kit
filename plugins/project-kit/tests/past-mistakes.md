@@ -1,6 +1,6 @@
 # Replay test: past mistakes
 
-Fifteen real mistakes made while starting and running three projects within two weeks
+Sixteen real mistakes made while starting and running three projects within two weeks
 ([xpath-to-class-chain](https://github.com/domovou69/xpath-to-class-chain), "CC";
 [appium-android-locator-benchmark](https://github.com/domovou69/appium-android-locator-benchmark), "BM";
 [xpath-to-uiselector](https://github.com/domovou69/xpath-to-uiselector), "US"). Sources are PR numbers and commits in
@@ -26,8 +26,9 @@ table; a row with no matching item is a regression. Rows caught by a script are 
 | K13 | **The sibling project's tools not proposed.** For the second LLM comparison the user had to point at the first project's runner; the playground recipe was a memory note "reuse for the other project" that only the user remembered | Reuse depended on the user's memory | US notes 2026-10-23 (LLM comparison decisions; playground recipe note) | [kickoff](../skills/kickoff/SKILL.md) rule 4, steps 2–3; [plugins](../skills/kickoff/references/plugins.md); **script**: `kit-inventory.js` signals "llm/ folder or prompt files", "GitHub Pages workflow or site/ folder" |
 | K14 | **A stale memory index.** One index line still says "next: GitHub release, badge, Pages playground" while its file records two later releases and a published article; another says "next: step 2" while its file is at step 4 | Each session starts from an out-of-date summary | US and CC `MEMORY.md` vs their files (2026-10-25) | [retro](../skills/retro/SKILL.md) step 6; [triage](../skills/retro/references/triage.md) "Index line out of date" (a reading step); **scan**: `retro-scan.js` "Memory index" lists links to missing files and files not indexed |
 | K15 | **A general rule kept in one project's memory.** "One rules file, rewritten in place, no v2/v3/v4" lived only in the second project's memory after the first had piled up prompt versions; the kit's comparison skill says it now, the memory still does too | The rule invisible to a third comparison until the kit had it | US notes 2026-10-23; CC `audit/llm/` prompt versions | [retro](../skills/retro/SKILL.md) rule 1; **scan**: "covered — memory can shrink to a pointer", best match in `llm-benchmark:llm-vs-tool` |
+| K16 | **No stop criterion from the start.** The converter project never wrote down when it was done, so "enough" was judged case by case: an architecture review and two code reviews (PRs #64–#83, 20 PRs) changed no number on the corpus, and five of the eight findings of the second review were regressions of the first review's fixes | About 20 PRs and several windows; a late scope rule and a backlog file | CC #64–#83, #84; CC notes 2026-10-25 | [kickoff](../skills/kickoff/SKILL.md) rule 8; [templates/PLAN.md](../skills/kickoff/templates/PLAN.md) "Definition of Done", "Out of scope", "Architecture before code", "Budgets", "Stage-end criterion", "Maintenance mode"; [plan page](../skills/kickoff/references/plan-page.md) (the goals with a target and a ceiling at the top of every page); [templates/known-issues.md](../skills/kickoff/templates/known-issues.md); **check**: `kickoff-check.js` warns without a Definition of Done or an out-of-scope section |
 
-Checked on 2026-10-25: 15 of 15 rows map to a skill item, a check or a scan output.
+Checked on 2026-10-25: 16 of 16 rows map to a skill item, a check or a scan output.
 
 ## A run on the source projects
 

@@ -1,0 +1,178 @@
+/* project-kit plan page: the design system. Every project's plan page uses this file unchanged, so the pages look the
+   same. Six core tokens, four status colors, three priority colors, two typefaces, light and dark, phone width.
+   Layout concept: a ledger. One narrow column, rows with a status mark on the left and numbers in mono on the right. */
+:root {
+  --bg: #f4f5f7;
+  --panel: #ffffff;
+  --fg: #14171c;
+  --muted: #5b6470;
+  --line: #dde1e7;
+  --accent: #2a6fdb;
+  --s-done: #1f9d55;
+  --s-now: #2a6fdb;
+  --s-next: #8b94a1;
+  --s-parked: #5b6470;
+  --p1: #d03b3b;
+  --p2: #b86e00;
+  --p3: #5b6470;
+  --font-sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #101318;
+    --panel: #171b22;
+    --fg: #e8eaee;
+    --muted: #98a1ae;
+    --line: #2a303a;
+    --accent: #5b9bff;
+    --s-done: #3dbb73;
+    --s-now: #5b9bff;
+    --s-next: #7d8794;
+    --s-parked: #98a1ae;
+    --p1: #ef6a6a;
+    --p2: #fab219;
+    --p3: #98a1ae;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #101318;
+  --panel: #171b22;
+  --fg: #e8eaee;
+  --muted: #98a1ae;
+  --line: #2a303a;
+  --accent: #5b9bff;
+  --s-done: #3dbb73;
+  --s-now: #5b9bff;
+  --s-next: #7d8794;
+  --s-parked: #98a1ae;
+  --p1: #ef6a6a;
+  --p2: #fab219;
+  --p3: #98a1ae;
+  color-scheme: dark;
+}
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font: 15px/1.5 var(--font-sans);
+}
+.page {
+  max-width: 880px;
+  margin: 0 auto;
+  padding-block: 24px 48px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid;
+  gap: 32px;
+}
+.page *, .page *::before, .page *::after { box-sizing: border-box; }
+.page h1, .page h2, .page p { margin: 0; }
+.page code, .mono { font-family: var(--font-mono); font-size: 0.92em; }
+.page a { color: var(--accent); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Header */
+.top { display: grid; gap: 16px; }
+.top-line { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 16px; }
+.page h1 { font-size: 22px; font-weight: 600; letter-spacing: -0.01em; text-wrap: balance; }
+.updated { color: var(--muted); font: 12px var(--font-mono); }
+.here, .next { display: grid; grid-template-columns: 7.5em minmax(0, 1fr); gap: 8px; align-items: baseline; }
+.k { color: var(--muted); font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; }
+.here .v { font-weight: 600; }
+
+/* Section headings */
+.page h2 {
+  font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted);
+  display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 16px;
+  padding-bottom: 8px; border-bottom: 1px solid var(--line);
+}
+.page h2 .sum { font: 400 12px var(--font-mono); letter-spacing: 0; text-transform: none; }
+section { display: grid; gap: 12px; align-content: start; }
+
+/* Definition of Done */
+.dod { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; }
+.goal { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 12px 14px; display: grid; gap: 8px; min-width: 0; }
+.goal .name { font-weight: 600; text-wrap: balance; }
+.goal .num { font: 600 26px/1 var(--font-mono); font-variant-numeric: tabular-nums; }
+.goal .num small { font: 400 12px var(--font-mono); color: var(--muted); margin-left: 6px; }
+.bar { height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; }
+.bar > i { display: block; height: 100%; background: var(--accent); border-radius: 3px; }
+.goal.reached .bar > i { background: var(--s-done); }
+.goal .range { font: 12px var(--font-mono); color: var(--muted); display: flex; flex-wrap: wrap; gap: 2px 12px; }
+.goal .verdict { font-size: 12px; font-weight: 600; }
+.goal .note { font-size: 13px; color: var(--muted); }
+
+/* Status mark: the shape differs per status, so color is never the only cue */
+.st { display: inline-flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; white-space: nowrap; }
+.st::before { content: ""; width: 10px; height: 10px; border-radius: 50%; flex: none; border: 2px solid var(--c); background: var(--c); }
+.st-done { --c: var(--s-done); }
+.st-now { --c: var(--s-now); }
+.st-now::before { box-shadow: 0 0 0 3px color-mix(in srgb, var(--s-now) 25%, transparent); }
+.st-next { --c: var(--s-next); }
+.st-next::before { background: transparent; }
+.st-parked { --c: var(--s-parked); }
+.st-parked::before { background: transparent; border-style: dashed; }
+
+/* Stages */
+.stages { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.stage { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; }
+.stage.is-now { border-color: var(--s-now); }
+.stage > summary, .row { list-style: none; cursor: pointer; display: grid; grid-template-columns: 6.5em minmax(0, 1fr) auto; gap: 4px 12px; align-items: baseline; padding: 10px 14px; }
+.stage > summary::-webkit-details-marker { display: none; }
+.stage > summary::after { content: none; }
+.title { font-weight: 600; min-width: 0; overflow-wrap: anywhere; }
+.nums { font: 12px var(--font-mono); color: var(--muted); text-align: right; display: grid; gap: 2px; font-variant-numeric: tabular-nums; }
+.stage-body { border-top: 1px solid var(--line); padding: 12px 14px; display: grid; gap: 12px; }
+.stage-body .note { color: var(--muted); font-size: 14px; }
+.pr { font: 12px var(--font-mono); color: var(--muted); margin-left: 8px; font-weight: 400; }
+.children { display: grid; gap: 0; margin: 0; padding: 0; list-style: none; border: 1px solid var(--line); border-radius: 6px; }
+.children li { border-top: 1px solid var(--line); }
+.children li:first-child { border-top: 0; }
+.stage > .row { cursor: default; }
+.children .row { cursor: default; padding: 8px 12px; }
+.children .row .title { font-weight: 500; }
+.row-extra { padding: 0 12px 10px 12px; display: grid; gap: 8px; }
+.row-extra .note { color: var(--muted); font-size: 13px; }
+
+/* Stage prompt */
+.copy {
+  font: 600 12px var(--font-sans); padding: 6px 12px; border-radius: 4px; cursor: pointer;
+  border: 1px solid var(--accent); background: transparent; color: var(--accent); justify-self: start;
+}
+.copy:hover { background: var(--accent); color: var(--panel); }
+.copy.ok { border-color: var(--s-done); color: var(--s-done); }
+.prompt-wrap { display: grid; gap: 8px; }
+.prompt { margin: 0; padding: 10px 12px; background: var(--bg); border: 1px solid var(--line); border-radius: 4px; font: 12px/1.5 var(--font-mono); white-space: pre-wrap; overflow-wrap: anywhere; max-height: 14em; overflow: auto; }
+
+/* Found bugs */
+.issues { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.issue { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 10px 14px; display: grid; grid-template-columns: 3.2em minmax(0, 1fr); gap: 4px 12px; align-items: start; }
+.issue.p1 { border-color: var(--p1); border-width: 2px; }
+.chip { font: 600 12px var(--font-mono); border: 1px solid var(--c); color: var(--c); border-radius: 4px; padding: 1px 0; text-align: center; }
+.chip-p1 { --c: var(--p1); background: color-mix(in srgb, var(--p1) 14%, transparent); }
+.chip-p2 { --c: var(--p2); }
+.chip-p3 { --c: var(--p3); }
+.issue .meta { grid-column: 2; font-size: 13px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 2px 16px; }
+.issue .meta b { color: var(--fg); font-weight: 600; }
+.counts { font: 12px var(--font-mono); }
+.empty { color: var(--muted); }
+
+/* New and undecided */
+.undecided { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.undecided li { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 10px 14px; display: grid; gap: 2px; }
+.undecided .rec { font-size: 13px; color: var(--muted); }
+.undecided .rec b { color: var(--fg); font-weight: 600; }
+
+.foot { color: var(--muted); font: 12px var(--font-mono); }
+
+@media (max-width: 560px) {
+  .here, .next { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .stage > summary, .row { grid-template-columns: minmax(0, 1fr) auto; }
+  .stage > summary .st, .row .st { grid-column: 1 / -1; }
+  .nums { text-align: left; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .bar > i { transition: width 0.3s ease; }
+}
