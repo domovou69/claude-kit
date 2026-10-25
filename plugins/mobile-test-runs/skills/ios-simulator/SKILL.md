@@ -1,6 +1,6 @@
 ---
 name: ios-simulator
-description: Use when preparing or running Appium / XCUITest test runs or timing benchmarks on an iOS simulator — picking and pinning the simulator, installing a runtime, WDA and xcuitest-driver setup, page source and lookup pitfalls, long background runs with --resume, and recording the host state. Not for a physical iPhone (use mobile-test-runs:ios-real-device), not for Android (mobile-test-runs:android-emulator), not for cloud device farms, and not for building a locator converter itself (locator-converter:build).
+description: Use when preparing or running Appium / XCUITest (also `xcodebuild test`, Maestro, Detox, Flutter drive) test runs or timing benchmarks on an iOS simulator — picking and pinning the simulator, installing a runtime, WDA and xcuitest-driver setup, page source and lookup pitfalls, long background runs with --resume, and recording the host state. Not for a physical iPhone (use mobile-test-runs:ios-real-device), not for Android (mobile-test-runs:android-emulator), not for cloud device farms, and not for building a locator converter itself (locator-converter:build).
 ---
 
 # iOS simulator runs

@@ -69,6 +69,8 @@ test('branch: main behind origin fails (a bump merged into a stacked base never 
   assert.deepStrictEqual(levels(c.checkBranch('main', 'aaa', 'bbb', false)), ['FAIL']);
   assert.deepStrictEqual(levels(c.checkBranch('main', 'aaa', 'aaa', false)), ['PASS']);
   assert.deepStrictEqual(levels(c.checkBranch('release/1.2.0', 'aaa', 'bbb', true)), ['WARN', 'PASS']);
+  assert.deepStrictEqual(levels(c.checkBranch('release/1.x', 'aaa', 'bbb', false, 'release/1.x')), ['FAIL']);
+  assert.deepStrictEqual(levels(c.checkBranch('release/1.x', 'aaa', 'aaa', false, 'release/1.x')), ['PASS']);
 });
 
 test('npm pack: both JSON shapes, file count, internal files', () => {

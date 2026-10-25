@@ -27,7 +27,8 @@ Only rules that must always hold are hooks. `scripts/guard.js`, Node, no depende
 
 What counts as a timed or device run, and how to add your own runner, is in
 [run conditions](references/run-conditions.md#the-hooks-patterns) (`.claude/mobile-test-runs.json`). On an internal
-error the hook lets the command through and says so on stderr. Host checks run on macOS only; the "ask first" rule
+error the hook lets the command through and says so on stderr. A project config with `"defaults": false` switches the
+built-in patterns off, and the hook says so on stderr every time. Host checks run on macOS only; the "ask first" rule
 runs everywhere.
 
 ## Test

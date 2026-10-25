@@ -90,3 +90,8 @@ test('cli: allow is silent; broken input fails open', () => {
   assert.strictEqual(b.status, 0);
   assert.match(b.stderr, /internal error, command allowed/);
 });
+
+test('effort max is matched without regard to case', () => {
+  for (const c of ['claude -p x --effort MAX', 'claude -p x --effort=Max', 'node run.js opus MAX'])
+    assert.strictEqual(g.decide('Bash', { command: c }).decision, 'deny', c);
+});

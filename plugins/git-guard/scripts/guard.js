@@ -16,7 +16,15 @@ const PROTECTED = new Set(['main', 'master']);
 // ---------------------------------------------------------------- shell parsing
 
 // shell-parse.js is a copy of shared/shell-parse.js (node scripts/sync-shared.js); do not edit it here.
-const { parseCommands, expand } = require('./shell-parse');
+let parseCommands;
+let expand;
+try {
+  ({ parseCommands, expand } = require('./shell-parse'));
+} catch (e) {
+  if (require.main !== module) throw e;
+  process.stderr.write(`git-guard: internal error, command allowed: ${e.message}\n`);
+  process.exit(0);
+}
 
 // ---------------------------------------------------------------- git state
 
@@ -181,7 +189,7 @@ function main() {
   }
   const command = input?.tool_input?.command;
   if (input?.tool_name && input.tool_name !== 'Bash') return 0;
-  if (typeof command !== 'string' || !/\bgit\b/.test(command)) return 0;
+  if (typeof command !== 'string') return 0;
 
   const state = { cwd: input.cwd || process.cwd(), branch: new Map(), firstCommit: new Set() };
   const msg = analyze(command, state);

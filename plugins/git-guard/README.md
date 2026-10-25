@@ -13,7 +13,7 @@ It is meant for user scope, so it guards every project.
 - `git commit` while the current branch is `main` or `master`.
 - `git push` whose target on the remote is `main` or `master`: a plain `git push` from `main`, `git push origin main`, `HEAD:main`, `topic:main`, `--all`, `--mirror`, deleting `:main`.
 
-The command is parsed, not grepped: it finds `git` inside `&&`, `||`, `;`, pipes, `( )` subshells, `{ }` groups, `$( )`, backticks, `bash -c "…"`, `eval`, after `FOO=1`, `env`, `sudo`, with `git -C <dir>`, `git -c k=v` or an absolute path to `git`. `cd <dir> &&` and `git switch -c` / `git checkout -b` earlier in the same command are taken into account, so `git switch -c topic && git commit -m …` passes. Quoted text and heredoc bodies (commit messages) are not treated as commands.
+The command is parsed, not grepped, with the kit's shared shell parser: it finds `git` inside `&&`, `||`, `;`, pipes, `( )` subshells, `{ }` groups, `$( )` and backticks (also inside double quotes), `bash -c "…"` / `bash -lc "…"`, `eval`, after `FOO=1` and wrappers such as `env`, `sudo -u me`, `timeout 30`, `nice -n 5`, `xargs`, with `git -C <dir>`, `git -c k=v`, an absolute path to `git` or a quoted or escaped name (`g'i't`). `cd <dir> &&` and `git switch -c` / `git checkout -b` earlier in the same command are taken into account, so `git switch -c topic && git commit -m …` passes. Quoted text and heredoc bodies (commit messages) are not treated as commands.
 
 On a block the hook exits 2 and tells Claude: *create a branch first: `git switch -c <topic>`*.
 
@@ -26,7 +26,7 @@ Pushing another branch while `main` is checked out is allowed: it does not chang
 
 ## Limits
 
-It guards what Claude runs through the Bash tool, not your own terminal. It cannot see through git aliases, scripts that run git, or commands assembled from variables. On an internal error it lets the command through and says so on stderr.
+It guards what Claude runs through the Bash tool, not your own terminal. It cannot see through git aliases, scripts that run git, or commands assembled from variables. Only `git commit` is checked on the branch side: `git merge`, `cherry-pick`, `rebase` or plumbing such as `commit-tree` and `update-ref` can still move local `main`; the push check stops them reaching the remote. A bare `git push` is read as "this branch to the same name", so with `push.default=upstream` and a topic branch tracking `origin/main` it is not caught. On an internal error it lets the command through and says so on stderr.
 
 ## Tests
 

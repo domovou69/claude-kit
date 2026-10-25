@@ -127,6 +127,7 @@ test('loadConfig reads .claude/mobile-test-runs.json and survives a broken file'
     const c = g.loadConfig(dir);
     assert.ok(c.timedRuns[0].test('node run.js'));
     assert.strictEqual(c.defaults, false);
+    assert.match(c.warnings.join(), /"defaults": false/);
     fs.writeFileSync(path.join(dir, '.claude', 'mobile-test-runs.json'), '{ broken');
     const b = g.loadConfig(dir);
     assert.strictEqual(b.defaults, true);
@@ -147,7 +148,7 @@ test('post: a background device run gets a monitor reminder', () => {
 function run(mode, toolInput, host = OK, toolName = 'Bash') {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mtr-cli-'));
   try {
-    const env = { ...process.env, MOBILE_RUNS_HOST: JSON.stringify(host), CLAUDE_PROJECT_DIR: dir };
+    const env = { ...process.env, MOBILE_RUNS_TEST: '1', MOBILE_RUNS_HOST: JSON.stringify(host), CLAUDE_PROJECT_DIR: dir };
     const input = JSON.stringify({ hook_event_name: mode === 'post' ? 'PostToolUse' : 'PreToolUse', tool_name: toolName, tool_input: toolInput, cwd: dir });
     return spawnSync(process.execPath, [GUARD, mode], { input, env, encoding: 'utf8' });
   } finally {

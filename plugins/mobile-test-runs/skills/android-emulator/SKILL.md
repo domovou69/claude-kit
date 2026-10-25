@@ -1,6 +1,6 @@
 ---
 name: android-emulator
-description: Use when preparing or running Appium / UiAutomator2 test runs or timing benchmarks on an Android emulator (AVD) — choosing the system image, starting it headless, keeping the guest quiet, adb and intent size limits, local Appium setup, long background runs with --resume, and recording the host state. Not for physical Android phones (not covered yet), not for iOS (mobile-test-runs:ios-simulator or ios-real-device), not for cloud device farms, and not for building a locator converter itself (locator-converter:build).
+description: Use when preparing or running Appium / UiAutomator2 (also Espresso via `gradlew connected…AndroidTest`, Maestro, Detox, Flutter drive) test runs or timing benchmarks on an Android emulator (AVD) — choosing the system image, starting it headless, keeping the guest quiet, adb and intent size limits, local Appium setup, long background runs with --resume, and recording the host state. Not for physical Android phones (not covered yet), not for iOS (mobile-test-runs:ios-simulator or ios-real-device), not for cloud device farms, and not for building a locator converter itself (locator-converter:build).
 ---
 
 # Android emulator runs

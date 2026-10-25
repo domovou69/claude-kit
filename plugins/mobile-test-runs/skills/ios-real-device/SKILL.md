@@ -1,6 +1,6 @@
 ---
 name: ios-real-device
-description: Use when preparing or running Appium / XCUITest test runs or timing benchmarks on a physical iPhone or iPad over USB — WDA signing with a personal team, installing and launching the app, ports next to a simulator, USB tunnel drops, reruns and merges, and keeping identifiers out of a public repo. Not for the iOS simulator (use mobile-test-runs:ios-simulator), not for Android phones or emulators, not for cloud device farms, and not for building a locator converter itself (locator-converter:build).
+description: Use when preparing or running Appium / XCUITest (also `xcodebuild test`, Maestro, Detox, Flutter drive) test runs or timing benchmarks on a physical iPhone or iPad over USB — WDA signing with a personal team, installing and launching the app, ports next to a simulator, USB tunnel drops, reruns and merges, and keeping identifiers out of a public repo. Not for the iOS simulator (use mobile-test-runs:ios-simulator), not for Android phones or emulators, not for cloud device farms, and not for building a locator converter itself (locator-converter:build).
 ---
 
 # iOS real-device runs

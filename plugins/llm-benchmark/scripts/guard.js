@@ -18,15 +18,23 @@ const BYPASS = 'LLM_BENCH_ALLOW_MAX';
 // ---------------------------------------------------------------- shell parsing
 
 // shell-parse.js is a copy of shared/shell-parse.js (node scripts/sync-shared.js); do not edit it here.
-const { parseCommands, expand } = require('./shell-parse');
+let parseCommands;
+let expand;
+try {
+  ({ parseCommands, expand } = require('./shell-parse'));
+} catch (e) {
+  if (require.main !== module) throw e;
+  process.stderr.write(`llm-benchmark: internal error, command allowed: ${e.message}\n`);
+  process.exit(0);
+}
 
 // ---------------------------------------------------------------- decisions
 
 function usesMax(words) {
   for (let i = 0; i < words.length; i++) {
-    if (words[i] === '--effort=max') return true;
-    if (words[i] === '--effort' && words[i + 1] === 'max') return true;
-    if (i > 0 && words[i] === 'max' && MODEL.test(words[i - 1])) return true; // node run.js opus max …
+    if (/^--effort=max$/i.test(words[i])) return true;
+    if (words[i] === '--effort' && /^max$/i.test(words[i + 1] || '')) return true;
+    if (i > 0 && /^max$/i.test(words[i]) && MODEL.test(words[i - 1])) return true; // node run.js opus max …
   }
   return false;
 }
