@@ -24,6 +24,7 @@
       "id": "s0",
       "title": "<scaffold: repository settings, CI, packaging basics>",
       "status": "next",
+      "importance": "high",
       "estimate": { "minutes": 30, "window_pct": 5 },
       "note": "<what the stage delivers>",
       "prompt": "<the prompt for the window that does this stage: what to read first, the task, the conditions>"
@@ -31,7 +32,9 @@
     {
       "id": "s1",
       "title": "<stage 1>",
-      "status": "next",
+      "status": "blocked",
+      "blocked_by": "s0",
+      "importance": "medium",
       "estimate": { "minutes": 60, "window_pct": 12 },
       "prompt": "<prompt for stage 1>",
       "children": [

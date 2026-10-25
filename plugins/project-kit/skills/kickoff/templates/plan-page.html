@@ -2,7 +2,7 @@
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
 <style>
 {{CSS}}
 </style>
@@ -10,31 +10,115 @@
 {{BODY}}
 </div>
 <script>
-document.querySelectorAll('.copy').forEach(function (btn) {
-  btn.addEventListener('click', function () {
-    var wrap = btn.closest('.prompt-wrap');
-    var pre = wrap.querySelector('.prompt');
-    var text = pre.textContent;
-    var done = function () {
-      btn.classList.add('ok');
-      btn.textContent = 'Copied';
-      setTimeout(function () { btn.classList.remove('ok'); btn.textContent = 'Copy stage prompt'; }, 2000);
-    };
-    var fallback = function () {
-      var details = wrap.querySelector('details');
-      if (details) details.open = true;
-      var range = document.createRange();
-      range.selectNodeContents(pre);
-      var sel = window.getSelection();
-      sel.removeAllRanges();
-      sel.addRange(range);
-      btn.textContent = 'Select and copy below';
-    };
-    try {
-      navigator.clipboard.writeText(text).then(done, fallback);
-    } catch (e) {
-      fallback();
-    }
+(function () {
+  var ageLabel = {{AGE_FN}};
+  var DAY = 86400000;
+  function parseDay(s) { var p = s.split('-'); return Date.UTC(+p[0], +p[1] - 1, +p[2]); }
+  function today() { var d = new Date(); return Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()); }
+  function ageDays(s) { return Math.round((today() - parseDay(s)) / DAY); }
+
+  // "updated 2026-10-25 (3 days ago)": computed here so it stays right while the page stays open.
+  document.querySelectorAll('[data-age-of]').forEach(function (el) {
+    el.textContent = '(' + ageLabel(ageDays(el.getAttribute('data-age-of'))) + ')';
   });
-});
+
+  // Copy the stage prompt.
+  document.querySelectorAll('.copy').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var wrap = btn.closest('.prompt-wrap');
+      var pre = wrap.querySelector('.prompt');
+      var done = function () {
+        btn.classList.add('ok');
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.classList.remove('ok'); btn.textContent = 'Copy stage prompt'; }, 2000);
+      };
+      var fallback = function () {
+        var details = wrap.querySelector('details');
+        if (details) details.open = true;
+        var range = document.createRange();
+        range.selectNodeContents(pre);
+        var sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+        btn.textContent = 'Select and copy below';
+      };
+      try {
+        navigator.clipboard.writeText(pre.textContent).then(done, fallback);
+      } catch (e) {
+        fallback();
+      }
+    });
+  });
+
+  // The info button opens the dates, AI time and estimate of a row. It sits inside a <summary>, so it must not toggle it.
+  document.querySelectorAll('.act.info').forEach(function (btn) {
+    btn.addEventListener('click', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      var box = document.getElementById(btn.getAttribute('aria-controls'));
+      var open = box.hidden;
+      box.hidden = !open;
+      btn.setAttribute('aria-expanded', String(open));
+    });
+  });
+
+  // Stage filters: status chips, and "Done since" for the done stages. Without this script every stage is visible.
+  var toolbar = document.querySelector('.toolbar');
+  if (!toolbar) return;
+  toolbar.hidden = false;
+  var rows = Array.prototype.slice.call(document.querySelectorAll('.stages > li[data-status]'));
+  var select = toolbar.querySelector('select');
+  var note = document.querySelector('.hidden-note');
+  var chips = Array.prototype.slice.call(toolbar.querySelectorAll('.chip-f'));
+  var fromButtons = Array.prototype.slice.call(document.querySelectorAll('.act.from'));
+  var on = {};
+  chips.forEach(function (c) { on[c.getAttribute('data-status')] = true; });
+
+  function doneVisible(li, mode) {
+    var rank = +li.getAttribute('data-rank');
+    var kind = mode.split(':')[0];
+    var arg = mode.slice(kind.length + 1);
+    if (kind === 'all') return true;
+    if (kind === 'last') return rank < +arg;
+    if (kind === 'days') { var f = li.getAttribute('data-finished'); return !!f && ageDays(f) <= +arg; }
+    if (kind === 'from') {
+      var target = rows.filter(function (r) { return r.getAttribute('data-id') === arg; })[0];
+      return !!target && rank <= +target.getAttribute('data-rank');
+    }
+    return true;
+  }
+
+  function apply() {
+    var hiddenDone = 0;
+    rows.forEach(function (li) {
+      var status = li.getAttribute('data-status');
+      var show = on[status];
+      if (show && status === 'done' && !doneVisible(li, select.value)) { show = false; hiddenDone++; }
+      li.hidden = !show;
+    });
+    note.hidden = hiddenDone === 0;
+    note.querySelector('.count').textContent = hiddenDone + (hiddenDone === 1 ? ' older done stage is hidden. ' : ' older done stages are hidden. ');
+    fromButtons.forEach(function (b) { b.classList.toggle('on', select.value === 'from:' + b.getAttribute('data-id')); });
+  }
+
+  chips.forEach(function (c) {
+    c.addEventListener('click', function () {
+      var s = c.getAttribute('data-status');
+      on[s] = !on[s];
+      c.setAttribute('aria-pressed', String(on[s]));
+      apply();
+    });
+  });
+  select.addEventListener('change', apply);
+  note.querySelector('button').addEventListener('click', function () { select.value = 'all'; apply(); });
+  fromButtons.forEach(function (b) {
+    b.addEventListener('click', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      select.value = 'from:' + b.getAttribute('data-id');
+      apply();
+    });
+  });
+  apply();
+})();
 </script>

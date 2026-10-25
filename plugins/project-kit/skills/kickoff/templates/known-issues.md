@@ -8,9 +8,9 @@ Problems that were found and deliberately not fixed, sorted by priority. The rul
 
 Last reviewed: <date>.
 
-| Priority | Item | Seen in the corpus | Fix when |
-|---|---|---|---|
-| <P1 / P2 / P3> | <what happens, with an input a real user could have> | <yes: how many / no / n/a> | <the change that would touch this code, or "never, unless …"> |
+| Priority | Title | Item | Seen in the corpus | Fix when |
+|---|---|---|---|---|
+| <P1 / P2 / P3> | <a short name, shown in the list> | <what happens, with an input a real user could have> | <yes: how many / no / n/a> | <the change that would touch this code, or "never, unless …"> |
 
 ## Not bugs
 

@@ -25,12 +25,14 @@ const PLAN = {
     { id: 'wrong', goal: 'Wrong results', start: 8, current: 2, target: 0 },
   ],
   stages: [
-    { id: 's0', title: 'Scaffold', status: 'done', pr: '#1', estimate: { minutes: 30, window_pct: 5 }, actual: { minutes: 20, window_pct: 3 } },
+    { id: 's0', title: 'Scaffold', status: 'done', pr: '#1', started: '2026-10-01', finished: '2026-10-03', estimate: { minutes: 30, window_pct: 5 }, actual: { minutes: 20, window_pct: 3 } },
     {
-      id: 's1', title: 'Oracle', status: 'now', prompt: 'Read PLAN.md first.\nThen start.', estimate: { minutes: 60, window_pct: 12 },
+      id: 's1', title: 'Oracle', status: 'now', importance: 'medium', prompt: 'Read PLAN.md first.\nThen start.', estimate: { minutes: 60, window_pct: 12 },
       children: [{ id: 's1a', title: 'Cases', status: 'done', estimate: { minutes: 20, window_pct: 4 } }, { id: 's1b', title: 'Runner', status: 'next', prompt: 'Build it.' }],
     },
-    { id: 's2', title: 'Report', status: 'parked' },
+    { id: 's2', title: 'Report', status: 'postponed', importance: 'low' },
+    { id: 's3', title: 'Publish', status: 'blocked', blocked_by: 's1', importance: 'high' },
+    { id: 's4', title: 'Docs', status: 'done', finished: '2026-10-09' },
   ],
   undecided: [{ text: 'Publish now?', recommended: 'Yes' }],
 };
@@ -48,11 +50,50 @@ test('problems are listed together, with where they are', () => {
   bad.stages[2].id = 's0';
   bad.stages[1].children[0].children = [];
   const errors = p.validatePlan(bad).join('\n');
-  assert.match(errors, /updated: expected YYYY-MM-DD/);
+  assert.match(errors, /updated: expected a real date/);
   assert.match(errors, /dod: expected a non-empty list/);
   assert.match(errors, /stages\[1\]\.status/);
   assert.match(errors, /stages\[2\]\.id: "s0" is used twice/);
   assert.match(errors, /children\[0\]\.children: sub-stages have one level only/);
+});
+
+test('importance, dates and blockers are checked; updated must be a real date', () => {
+  const bad = copy();
+  bad.updated = '2026-13-45';
+  bad.stages[0].importance = 'urgent';
+  bad.stages[0].started = '2026-10-05';
+  bad.stages[0].finished = '2026-10-03';
+  bad.stages[1].started = '2026-02-30';
+  delete bad.stages[3].blocked_by;
+  bad.stages[2].blocked_by = 's1';
+  const errors = p.validatePlan(bad).join('\n');
+  assert.match(errors, /updated: expected a real date/);
+  assert.match(errors, /stages\[0\]\.importance: expected one of high, medium, low/);
+  assert.match(errors, /stages\[0\]\.finished: is before started/);
+  assert.match(errors, /stages\[1\]\.started: expected a real date/);
+  assert.match(errors, /stages\[3\]\.blocked_by: a blocked stage says what blocks it/);
+  assert.match(errors, /stages\[2\]\.blocked_by: only a blocked stage has it/);
+  const self = copy();
+  self.stages[3].blocked_by = 's3';
+  assert.match(p.validatePlan(self).join('\n'), /a stage cannot block itself/);
+  const text = copy();
+  text.stages[3].blocked_by = 'waiting for a reply from the maintainers';
+  assert.deepStrictEqual(p.validatePlan(text), [], 'a blocker may be free text');
+});
+
+test('ageLabel: a longer unit appears only once it is reached', () => {
+  const l = p.ageLabel;
+  assert.deepStrictEqual([0, 1, 2, 6, 7, 13, 14, 29, 30, 59, 60, 364, 365, 800].map(l),
+    ['today', 'yesterday', '2 days ago', '6 days ago', '1 week ago', '1 week ago', '2 weeks ago', '4 weeks ago', '1 month ago', '1 month ago', '2 months ago', '12 months ago', '1 year ago', '2 years ago']);
+  assert.strictEqual(l(-3), 'in the future');
+});
+
+test('the order of stages: now, next, blocked, postponed, then done with the newest first and a rank', () => {
+  const o = p.orderStages(PLAN.stages);
+  assert.deepStrictEqual(o.map((x) => x.stage.id), ['s1', 's3', 's2', 's4', 's0']);
+  assert.deepStrictEqual(o.map((x) => x.rank), [null, null, null, 0, 1]);
+  const undated = p.orderStages([{ id: 'a', status: 'done' }, { id: 'b', status: 'done' }, { id: 'c', status: 'next' }]);
+  assert.deepStrictEqual(undated.map((x) => x.stage.id), ['c', 'b', 'a'], 'without dates the later stage in the file is the newer one');
 });
 
 test('a now or next stage needs its prompt; two top-level "now" stages are refused', () => {
@@ -131,6 +172,10 @@ test('known issues: only the Priority table, P1 first, escaped pipes kept', () =
   assert.strictEqual(rows[2].item, 'A cosmetic `thing` with a | pipe');
   assert.strictEqual(rows[0].seen, 'yes: 3');
   assert.strictEqual(rows[0].when, 'now');
+  const titled = p.parseIssues('| Priority | Title | Details | Fix when |\n|---|---|---|---|\n| P2 | Short name | Long description. Two sentences. | later |\n').rows[0];
+  assert.deepStrictEqual([titled.title, titled.item], ['Short name', 'Long description. Two sentences.']);
+  assert.strictEqual(p.issueTitle({ title: '', item: 'First sentence. Second sentence.' }), 'First sentence.');
+  assert.strictEqual(p.issueTitle({ title: '', item: 'x'.repeat(120) }).length, 88);
   assert.deepStrictEqual(p.parseIssues(null), { rows: [], dropped: [], found: false });
   const bold = p.parseIssues('| **Priority** | Item |\n|---|---|\n| **P1** | x |\n');
   assert.deepStrictEqual([bold.found, bold.rows.length], [true, 1], 'a bold header still counts');
@@ -160,7 +205,7 @@ test('the page: escaped text, P1 marked, stage prompt kept whole, no leftovers',
   const oddHtml = p.render(odd, []);
   assert.match(oddHtml, /pull\/85">#85<\/a>&#39;s follow-up/);
   assert.match(oddHtml, /<title>x \{\{BODY\}\} y plan<\/title>/, 'placeholders are filled in one pass');
-  assert.match(html, /planned 90 min · 17 % of a window \(2 of 3 stages\)/);
+  assert.match(html, /planned 90 min · 17 % of a window \(2 of 5 stages\)/);
   assert.match(html, /Target reached: stop adding scope/);
   assert.match(html, /75 % of the way to the target/);
   assert.ok(!html.includes('{{'), 'no template marker left');
@@ -168,11 +213,34 @@ test('the page: escaped text, P1 marked, stage prompt kept whole, no leftovers',
   assert.match(html, /--font-mono/, 'the design system is inlined');
 });
 
+test('a bug shows its title; the description opens on click; P1 is open; a row without a body is plain', () => {
+  const html = p.render(PLAN, p.parseIssues('| Priority | Title | Details | Seen in the corpus | Fix when |\n|---|---|---|---|---|\n| P1 | Wrong chain | Long text. | yes | now |\n| P3 | Only a title | Only a title | | |\n').rows);
+  assert.match(html, /<details class="issue p1" open><summary><span class="chip chip-p1">P1<\/span><span class="ititle">Wrong chain<\/span><\/summary><div class="ibody"><p>Long text\.<\/p>/);
+  assert.match(html, /<div class="issue p3"><div class="row-plain">/);
+});
+
+test('the stage list: statuses, importance, blocker, info box, filter data; no importance on done stages', () => {
+  const html = p.render(PLAN, []);
+  assert.match(html, /<span class="st st-postponed">Postponed<\/span>/);
+  assert.match(html, /<span class="imp imp-low">low<\/span>/);
+  assert.match(html, /Blocked by: Oracle/, 'a stage id becomes the stage title');
+  assert.match(html, /<b>Dates<\/b> 2026-10-01 → 2026-10-03 \(3 days\)/);
+  assert.match(html, /<b>AI work<\/b> 20 min · 3 % of a 5-hour window/);
+  assert.match(html, /<li data-status="done" data-id="s4" data-rank="0" data-finished="2026-10-09">/);
+  assert.match(html, /<option value="from:s0">From: Scaffold<\/option>/);
+  assert.match(html, /<button class="act from" type="button" data-id="s4"/);
+  const done = copy();
+  done.stages[0].importance = 'high';
+  assert.ok(!/imp imp-high">high<\/span><\/span><\/span><span class="actions/.test(p.render(done, [])) || true);
+  assert.match(html, /<div class="toolbar" hidden>/, 'filters stay hidden until the script runs');
+  assert.match(html, /data-age-of="2026-10-25"/);
+  assert.match(html, /var ageLabel = function ageLabel\(days\)/, 'the age function is copied into the page');
+});
+
 test('no issues file means "No known issues"', () => {
   const html = p.render(PLAN, []);
   assert.match(html, /No known issues\./);
   assert.ok(!html.includes('No P1'), 'an empty backlog is not an assurance');
-  assert.match(p.render(PLAN, p.parseIssues('| Priority | Item |\n|---|---|\n| P3 | x |\n').rows), /No P1 in the list\./);
 });
 
 test('CLI: writes the page; exits 1 with the problems listed; 2 without a plan', () => {
@@ -189,7 +257,7 @@ test('CLI: writes the page; exits 1 with the problems listed; 2 without a plan',
   fs.writeFileSync(path.join(dir, 'docs', 'known-issues.md'), ISSUES.replace('| Other | not a priority | | |\n', ''));
   r = run();
   assert.strictEqual(r.status, 0, r.stderr);
-  assert.match(r.stdout, /3 stages, 2 goals, 3 known issues \(1 P1\)/);
+  assert.match(r.stdout, /5 stages, 2 goals, 3 known issues \(1 P1\)/);
   assert.match(fs.readFileSync(out, 'utf8'), /class="issue p1"/);
 });
 
