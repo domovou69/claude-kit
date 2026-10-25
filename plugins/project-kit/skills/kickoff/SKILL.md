@@ -39,7 +39,7 @@ deprecated after eleven PRs, a plan copied the order that had cost the last proj
    (module borders and shared primitives), budgets (stages, one review round per change set, the share of a window), a
    stage-end question ("did a metric in the Definition of Done move? no: close the stage, the findings go to
    `docs/known-issues.md`") and the triggers of maintenance mode. A project with no stop criterion keeps fixing for
-   its own sake: the converter project spent fifteen PRs on reviews that moved no number.
+   its own sake: the converter project spent about twenty PRs on reviews that moved no number.
 
 ## Workflow
 

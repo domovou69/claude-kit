@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Plan page generator: docs/plan.json + docs/known-issues.md -> one HTML file for the Artifact tool.
-//   node plan-page.js [project dir] [--plan <file>] [--issues <file>] [--out <file>]
+//   node plan-page.js [project dir] [--plan <file>] [--issues <file>] [--out <file>]   (default out: the temp folder)
 // The plan file is validated first (all problems are listed, exit 1). The issues table is read as it is; a missing
 // issues file means "no known issues". The page is rendered here, not in the browser: every text is escaped, the
 // look comes from templates/plan-design.css, so every project's page is built the same way. Read-only except --out.
@@ -9,6 +9,7 @@
 'use strict';
 
 const fs = require('node:fs');
+const os = require('node:os');
 const path = require('node:path');
 
 const TEMPLATES = path.join(__dirname, '..', 'templates');
@@ -90,36 +91,39 @@ function validatePlan(plan) {
   }
   const slots = [];
   (function walk(v) {
-    if (typeof v === 'string') for (const m of v.matchAll(/<[^\s<>][^<>\n]*>/g)) slots.push(m[0]);
+    // Code in backticks (`Map<string, number>`) is not a slot.
+    if (typeof v === 'string') for (const m of v.replace(/`[^`\n]*`/g, '').matchAll(/<[^\s<>][^<>\n]*>/g)) slots.push(m[0]);
     else if (v && typeof v === 'object') Object.values(v).forEach(walk);
   })(plan);
-  if (slots.length) errors.push(`${slots.length} template slot(s) left: ${[...new Set(slots)].slice(0, 5).join(' ')}`);
+  if (slots.length) errors.push(`${slots.length} template slot(s) left (put code in backticks): ${[...new Set(slots)].slice(0, 5).join(' ')}`);
   return errors;
 }
 
 // ---------------------------------------------------------------- known-issues.md (tested)
 
-// The table whose header has a "Priority" column. Cells split on an unescaped "|".
+// The table whose header has a "Priority" column. Cells split on an unescaped "|". Returns the rows (P1 first),
+// the rows whose priority is not P1, P2 or P3 (dropped, to be reported) and whether the table was found at all.
 function parseIssues(text) {
-  if (text === null || text === undefined) return [];
+  const result = { rows: [], dropped: [], found: false };
+  if (text === null || text === undefined) return result;
   const splitRow = (line) => line.trim().replace(/^\|/, '').replace(/\|$/, '').split(/(?<!\\)\|/).map((c) => c.replace(/\\\|/g, '|').trim());
-  const lines = text.split('\n');
-  const out = [];
+  const plain = (c) => c.replace(/[*_`]/g, '').trim();
   let cols = null;
-  for (const line of lines) {
+  for (const line of text.split('\n')) {
     if (!/^\s*\|/.test(line)) { cols = null; continue; }
     const cells = splitRow(line);
     if (cells.every((c) => /^:?-+:?$/.test(c))) continue;
     if (!cols) {
-      const idx = (re) => cells.findIndex((c) => re.test(c));
-      if (idx(/^priority$/i) >= 0) cols = { p: idx(/^priority$/i), item: idx(/^item$/i), seen: idx(/corpus|seen/i), when: idx(/fix when|when/i) };
+      const idx = (re) => cells.findIndex((c) => re.test(plain(c)));
+      if (idx(/^priority$/i) >= 0) { cols = { p: idx(/^priority$/i), item: idx(/^item$/i), seen: idx(/corpus|seen/i), when: idx(/fix when|when/i) }; result.found = true; }
       continue;
     }
-    const p = (cells[cols.p] || '').replace(/[*\s]/g, '').toUpperCase();
-    if (!PRIORITIES.includes(p)) continue;
-    out.push({ priority: p, item: cells[cols.item] || '', seen: cols.seen >= 0 ? cells[cols.seen] || '' : '', when: cols.when >= 0 ? cells[cols.when] || '' : '' });
+    const p = plain(cells[cols.p] || '').replace(/\s/g, '').toUpperCase();
+    if (!PRIORITIES.includes(p)) { if (cells.some(Boolean)) result.dropped.push(line.trim().slice(0, 60)); continue; }
+    result.rows.push({ priority: p, item: cells[cols.item] || '', seen: cols.seen >= 0 ? cells[cols.seen] || '' : '', when: cols.when >= 0 ? cells[cols.when] || '' : '' });
   }
-  return out.map((x, i) => [x, i]).sort((a, b) => PRIORITIES.indexOf(a[0].priority) - PRIORITIES.indexOf(b[0].priority) || a[1] - b[1]).map((x) => x[0]);
+  result.rows = result.rows.map((x, i) => [x, i]).sort((a, b) => PRIORITIES.indexOf(a[0].priority) - PRIORITIES.indexOf(b[0].priority) || a[1] - b[1]).map((x) => x[0]);
+  return result;
 }
 
 // ---------------------------------------------------------------- rendering (tested)
@@ -130,7 +134,7 @@ const inline = (s) => esc(s).replace(/`([^`]+)`/g, '<code>$1</code>');
 
 // 0..1 along start -> target; works for goals that go down (a count of wrong results) as well as up.
 function progress(g) {
-  if (g.start === g.target) return 1;
+  if (g.start === g.target) return g.current === g.target ? 1 : 0;
   return Math.min(1, Math.max(0, (g.current - g.start) / (g.target - g.start)));
 }
 
@@ -169,9 +173,12 @@ function totals(stages) {
 
 const prLink = (plan, pr) => {
   if (!pr) return '';
-  // "#85" and "#15–#31" both link every number.
-  const text = esc(pr).replace(/#(\d+)/g, (m, n) => (plan.repo ? `<a href="https://github.com/${esc(plan.repo)}/pull/${n}">${m}</a>` : m));
-  return `<span class="pr">${text}</span>`;
+  // "#85" and "#15–#31" both link every number; the text between is escaped on its own.
+  const parts = pr.split(/(#\d+)/).map((t) => {
+    const m = /^#(\d+)$/.exec(t);
+    return m && plan.repo ? `<a href="https://github.com/${esc(plan.repo)}/pull/${m[1]}">${t}</a>` : esc(t);
+  });
+  return `<span class="pr">${parts.join('')}</span>`;
 };
 
 const statusMark = (status) => `<span class="st st-${status}">${STATUS_LABEL[status]}</span>`;
@@ -227,7 +234,7 @@ function renderBody(plan, issues) {
     `<section><h2><span>Stages</span>${totalLine ? `<span class="sum">${totalLine}</span>` : ''}</h2><ul class="stages">${plan.stages.map((s) => renderStage(plan, s)).join('')}</ul></section>`,
     `<section><h2><span>Found bugs</span><span class="sum counts">${counts}</span></h2>`
     + (issues.length ? `<ul class="issues">${issues.map(renderIssue).join('')}</ul>` : '<p class="empty">No known issues.</p>')
-    + (hasP1 ? '' : '<p class="empty">No P1: nothing known gives a silently wrong result.</p>') + '</section>',
+    + (issues.length && !hasP1 ? '<p class="empty">No P1 in the list.</p>' : '') + '</section>',
   ];
   if (plan.undecided && plan.undecided.length) {
     parts.push(`<section><h2>New and undecided</h2><ul class="undecided">${plan.undecided.map((u) => `<li><span>${inline(u.text)}</span>${u.recommended ? `<span class="rec"><b>Recommended:</b> ${inline(u.recommended)}</span>` : ''}</li>`).join('')}</ul></section>`);
@@ -240,10 +247,8 @@ function render(plan, issues) {
   const tpl = fs.readFileSync(path.join(TEMPLATES, 'plan-page.html'), 'utf8');
   const css = fs.readFileSync(path.join(TEMPLATES, 'plan-design.css'), 'utf8');
   // Function replacers: "$&" and friends in the data are not replacement patterns.
-  return tpl
-    .replace('{{TITLE}}', () => esc(`${plan.project} plan`))
-    .replace('{{CSS}}', () => css.trim())
-    .replace('{{BODY}}', () => renderBody(plan, issues));
+  const parts = { TITLE: esc(`${plan.project} plan`), CSS: css.trim(), BODY: renderBody(plan, issues) };
+  return tpl.replace(/\{\{(TITLE|CSS|BODY)\}\}/g, (m, key) => parts[key]);
 }
 
 // ---------------------------------------------------------------- CLI
@@ -256,11 +261,15 @@ function main(argv) {
   let dir = '.';
   let planFile = null;
   let issuesFile = null;
-  let out = 'plan-page.html';
+  let out = null;
+  const value = (i) => {
+    if (i >= argv.length || argv[i].startsWith('--')) throw new Error(`${argv[i - 1]} needs a value`);
+    return argv[i];
+  };
   for (let i = 0; i < argv.length; i++) {
-    if (argv[i] === '--plan') planFile = argv[++i];
-    else if (argv[i] === '--issues') issuesFile = argv[++i];
-    else if (argv[i] === '--out') out = argv[++i];
+    if (argv[i] === '--plan') planFile = value(++i);
+    else if (argv[i] === '--issues') issuesFile = value(++i);
+    else if (argv[i] === '--out') out = value(++i);
     else if (argv[i].startsWith('--')) throw new Error(`unknown argument ${argv[i]}`);
     else dir = argv[i];
   }
@@ -275,10 +284,21 @@ function main(argv) {
     process.stderr.write(`${planFile}: ${errors.length} problem(s)\n${errors.map((e) => `  ${e}`).join('\n')}\n`);
     return 1;
   }
-  const issues = parseIssues(read(issuesFile));
-  fs.writeFileSync(out, render(plan, issues));
-  const p1 = issues.filter((x) => x.priority === 'P1').length;
-  process.stdout.write(`wrote ${out}: ${plan.stages.length} stages, ${plan.dod.length} goals, ${issues.length} known issues (${p1} P1)\n`);
+  // A backlog the page cannot read must not look like an empty one.
+  const issuesText = read(issuesFile);
+  const parsed = parseIssues(issuesText);
+  if (issuesText !== null && !parsed.found) {
+    process.stderr.write(`${issuesFile}: no table with a "Priority" column; the page would show no issues\n`);
+    return 1;
+  }
+  if (parsed.dropped.length) {
+    process.stderr.write(`${issuesFile}: ${parsed.dropped.length} row(s) without a priority of P1, P2 or P3 left out of the page:\n${parsed.dropped.map((d) => `  ${d}`).join('\n')}\n`);
+    return 1;
+  }
+  out = out || path.join(os.tmpdir(), `${path.basename(path.resolve(dir))}-plan-page.html`);
+  fs.writeFileSync(out, render(plan, parsed.rows));
+  const p1 = parsed.rows.filter((x) => x.priority === 'P1').length;
+  process.stdout.write(`wrote ${out}: ${plan.stages.length} stages, ${plan.dod.length} goals, ${parsed.rows.length} known issues (${p1} P1)\n`);
   return 0;
 }
 
