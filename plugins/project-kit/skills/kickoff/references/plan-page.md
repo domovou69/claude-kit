@@ -6,7 +6,7 @@ two files in the repository, and the page is built from them:
 | File | Holds | Written by |
 | --- | --- | --- |
 | `docs/plan.json` | Where we are, the Definition of Done with progress, stages and sub-stages with status, estimate, actual and prompt, what is undecided | Claude, at kickoff and at the end of every stage |
-| `docs/known-issues.md` | Found bugs and ideas, P1 / P2 / P3 ([template](../templates/known-issues.md)) | Claude, whenever a finding is not fixed on the spot |
+| `docs/known-issues.md` | Found bugs and ideas, P1 / P2 / P3, each with a short Title shown in the list ([template](../templates/known-issues.md)); without a Title column the first sentence is used | Claude, whenever a finding is not fixed on the spot |
 
 ## `plan.json`
 
@@ -18,13 +18,20 @@ Template: [templates/plan.json](../templates/plan.json). The generator validates
 | `project`, `repo`, `updated` | Name; `owner/name` (makes `#12` a link to the pull request); date `YYYY-MM-DD` |
 | `here` | `stage`: where the project is, one line. `next`: the next step and who does it, one line |
 | `dod[]` | `id`, `goal`, `start`, `current`, `target`, optional `ceiling` (the highest value possible), `unit`, `note`. The bar shows the way from `start` to `target`, up or down; at the target the card says to stop adding scope |
-| `stages[]` | `id`, `title`, `status` (`done`, `now`, `next`, `parked`), optional `pr` (`#85`, `#15–#31`), `note`, `estimate` and `actual` (`{ minutes, window_pct }`), `prompt`, `children[]` (one level of sub-stages) |
+| `stages[]` | `id`, `title`, `status` (`done`, `now`, `next`, `postponed`, `blocked`), optional `importance` (`high`, `medium`, `low`; shown on stages that are not done), `started` and `finished` (`YYYY-MM-DD`), `blocked_by` (a stage id, shown as that stage's title, or a few words such as "waiting for a reply from the maintainers"; required for `blocked`, refused otherwise), `pr` (`#85`, `#15–#31`), `note`, `estimate` and `actual` (`{ minutes, window_pct }`: how long the AI worked and how much of the 5-hour window it cost), `prompt`, `children[]` (one level of sub-stages) |
 | `undecided[]` | `text`, optional `recommended` |
 
 Rules the validator enforces: at most one top-level stage is `now`; a top-level `now` or `next` stage has a `prompt`
 (the text for the new window: what to read first, the check that the previous PR is merged, the task, the conditions);
-ids are unique; numbers are numbers; no `<slot>` left from the template. A stage without its own estimate stands for the
+ids are unique; dates are real calendar days and `finished` is not before `started`; numbers are numbers; no `<slot>` left from the template (code in backticks is not a slot). A stage without its own estimate stands for the
 sum of its sub-stages. An estimate or actual that was never made is left out, not guessed.
+
+## What the page does
+
+- **Header**: the project name, "Updated <date> (3 days ago)" (today, yesterday, N days, then weeks, months, years; a longer unit appears only once it is reached, and the browser works it out so it stays right), "Where we are" and "Next" in two tinted boxes.
+- **Sections** are panels in different tints: Definition of Done (green), Stages (blue), Found bugs (red), New and undecided (grey).
+- **Stages** are listed now, next, blocked, postponed, then done with the newest first. Status chips with counts hide and show a status. "Done since" limits the done stages: the last 3 (default), the last 7, 30 or 90 days, all, or everything from a chosen stage on; the "From here" button on a done row sets the same choice. Other statuses are never hidden by it. The ⓘ button on a row opens its dates and days, the AI work time, the share of the 5-hour window and the estimate. Without JavaScript every stage is visible.
+- **Found bugs** show a title; a click opens the description, where it was seen and when to fix it. P1 is open and red.
 
 ## Building and publishing
 
