@@ -14,12 +14,11 @@ the skill's output is files. `Bash` is not granted, so the skill's scripts do no
 
 ```
 cd plugins/project-kit
-claude plugin eval . --runs 1 --model claude-sonnet-5-5 --max-cost-usd 8 --no-publish --allow-tools Write
+claude plugin eval . --runs 3 --model claude-sonnet-5-5 --judge-model claude-sonnet-5-5 --no-publish --allow-tools Write
 ```
 
-Results land in `evals/results/` (git-ignored). One run per arm is noisy: the same case scored 0.86 and 1.00 with the
-plugin in two runs. Use `--runs 3` before drawing a conclusion about a single case.
+Results land in `evals/results/` (git-ignored). Graders for the plan are `llm` rubrics, not kit vocabulary; structural
+checks stay `regex` / `file_exists`. The personal-rules prompt lists the rules without saying they are global.
 
-Known limits: `verdict` and `cheaper path` graders match the kit's own vocabulary (green / yellow / red, "cheaper
-path"), so part of the delta is wording rather than behaviour. The `personal-rules-not-copied` prompt states that the
-rules are already global, which a model without the plugin also respects, so that case does not separate the arms yet.
+Last measured run (3 runs per arm, Sonnet 5.5, judge Sonnet 5.5): health-check-first 1.00 vs 0.57, personal-rules-not-copied
+1.00 vs 0.29, trigger-no-keyword 1.00 vs 0.39; the skill fired in all with-plugin runs.
