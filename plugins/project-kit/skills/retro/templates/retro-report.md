@@ -2,6 +2,8 @@
 
 Scope: <projects or "all">; memory files read: <N> (<M> feedback). Scan: `retro-scan.js <arguments>`.
 
+<!-- Conclusions only: every "Now in" was read, not taken from the scan; no scan scores or percentages here. -->
+
 ## Rules: memory → layer
 
 | Memory | Rule (one line, English) | Now in | Belongs in | Action | Evidence |

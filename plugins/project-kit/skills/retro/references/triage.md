@@ -19,6 +19,8 @@ What to do with each line of the scan. The layer test itself is in [where a rule
   with two dates or a repeat word is treated as repeated: the rule was needed more than once.
 - **best match** is the place to read. A high score on the wrong place (a different rule that shares words) is the
   usual false positive; a low score on a rule worded differently is the usual false negative.
+- The scan is for you, not the user. Read the best matches yourself and put only conclusions in the report ("covered
+  by the user `CLAUDE.md` line on estimates", "missing", "partly: the exception is not written"); no percentages.
 
 ## Actions
 

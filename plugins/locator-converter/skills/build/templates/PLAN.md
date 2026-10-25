@@ -75,7 +75,7 @@ Driver settings: <defaults only / list>. Settings that change lookup results: <l
 
 ## Stages
 
-One branch and one PR per stage, into main. Share is of the usage window.
+One branch and one PR per stage, into main (or on purpose a long-lived branch); never into another open PR's branch. Share is of the usage window.
 
 | # | Stage | Status | Result | Estimate |
 | --- | --- | --- | --- | --- |

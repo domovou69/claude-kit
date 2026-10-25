@@ -64,7 +64,8 @@ before stage 2; treat every fact there as a hypothesis to re-check on your pinne
 - Timed runs: AC power, low-power mode off, display kept awake (`caffeinate` on macOS), host state recorded.
 - Long runs: in the background, resumable (`--resume`), results written after every item, a progress check every
   5–10 minutes.
-- One branch and one PR per change, each from a fresh main; no stacked PRs.
+- One branch and one PR per change, into main (or on purpose a long-lived branch such as `release/*`), each from a
+  fresh copy of its target; never into another open PR's branch.
 
 ## When you finish a stage
 

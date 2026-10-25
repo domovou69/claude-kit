@@ -324,7 +324,9 @@ function parseArgs(argv) {
 
 function format(r) {
   const pct = (l) => (l.label ? `${Math.round(l.score * 100)} % ${l.label}` : '—');
-  const lines = [`Projects: ${r.projects.join(', ') || 'none'}; ${r.memories} memory files, ${r.feedback.length} feedback`, '', '## Feedback memories', ''];
+  const lines = [
+    'Triage input for Claude: read each best match before acting on it; tell the user conclusions, not these scores.',
+    `Projects: ${r.projects.join(', ') || 'none'}; ${r.memories} memory files, ${r.feedback.length} feedback`, '', '## Feedback memories', ''];
   for (const f of r.feedback) {
     lines.push(`${f.project}/${f.file} — ${f.description.length > 110 ? f.description.slice(0, 107) + '…' : f.description}`);
     lines.push(`  rules ${pct(f.layers.rules)} | hook ${pct(f.layers.hook)} | skill ${pct(f.layers.skill)} | ${f.incidents.dates} dates, ${f.incidents.repeats} repeat words`);

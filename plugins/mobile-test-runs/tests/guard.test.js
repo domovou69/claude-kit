@@ -24,7 +24,7 @@ test('parser: quotes, operators, redirections, heredocs, comments', () => {
   assert.deepStrictEqual(g.parseCommands('node x.js > out.log 2>&1 &'), [['node', 'x.js']]);
   assert.deepStrictEqual(g.parseCommands('cat <<EOF\nnode bench.js\nEOF\nls'), [['cat'], ['ls']]);
   assert.deepStrictEqual(g.parseCommands('ls # node bench.js'), [['ls']]);
-  assert.deepStrictEqual(g.parseCommands('x=$(node bench.js)'), [['x='], ['node', 'bench.js']]);
+  assert.deepStrictEqual(g.parseCommands('x=$(node bench.js)'), [['node', 'bench.js'], ['x=$()']]);
 });
 
 test('timed runs are recognised by script and file name', () => {

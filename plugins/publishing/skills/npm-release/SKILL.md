@@ -22,9 +22,10 @@ packages (1.0.0–1.0.3 and 1.0.0–1.2.0).
    npmjs.com only with the next version. Put such changes in before the release, or make a docs-only patch release
    on purpose and say so in its PR. See [the npm page](references/npm-page.md).
 4. **A release is its own PR from a fresh `main`.** It bumps `version` in `package.json` and lists the changes since
-   the last version in its description (no CHANGELOG file unless the project has one). Base `main`, never another
-   PR's branch: a PR merged into a base branch that was already merged never reaches `main`. After the merge, check
-   that `main` has the new version before anything is tagged or published.
+   the last version in its description (no CHANGELOG file unless the project has one). Base `main`, or on purpose a
+   long-lived branch the release is cut from (`release/*`, a version branch such as `1.x`); never another open PR's
+   branch: a PR merged into a base branch that was already merged never reaches `main`. After the merge, check that
+   the base has the new version before anything is tagged or published.
 5. **Every `bin` file is executable in git** (`100755`) and starts with `#!/usr/bin/env node`. npm sets the bit on
    install, so npm users do not notice; `npx` from a clone fails with "Permission denied" after the next pull.
 6. **Tag and GitHub release on the day of the publish.** An annotated tag `vX.Y.Z` on the merge commit, a GitHub
