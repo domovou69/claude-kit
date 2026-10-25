@@ -18,8 +18,9 @@ npm version X.Y.Z --no-git-tag-version   # package.json (and the lock file) only
 node <skill>/scripts/release-check.js     # on the branch: README, bin, metadata, version, pack
 ```
 
-- Base `main` (`gh pr create --base main`). Never stack a release on an unmerged PR: one PR merged into a branch that
-  had already been merged never reached `main`, and the fix was a cherry-pick PR.
+- Base `main` (`gh pr create --base main`), or on purpose a long-lived branch the release is cut from (`release/*`, a
+  version branch such as `1.x`). Never another open PR's branch: one PR merged into a branch that had already been
+  merged never reached `main`, and the fix was a cherry-pick PR.
 - Description: [templates/release-pr.md](../templates/release-pr.md) — what changed since the last version, test
   count, `npm pack --dry-run` file count and size, what happens after the merge.
 - Version: patch for fixes and docs-only releases, minor for new options or conversions with no API change, major for

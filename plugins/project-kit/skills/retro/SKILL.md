@@ -34,9 +34,9 @@ were copied by hand into each new memory folder, drifted apart, and were broken 
 | --- | --- | --- |
 | 0 | Estimate | "≈N min, ≈X % of the window" (the scan is seconds; the reading and the PR are the cost); wait for "yes" |
 | 1 | Scan | `node scripts/retro-scan.js` (in this skill's folder; `--project <name>` to narrow, `--since <date>` for the skill counts): per feedback memory the best match in rules, hooks and skills, incidents, a suggestion; duplicates; index problems; skill invocations |
-| 2 | Read | For every suggestion, open the memory and the best match: is the rule really there, all of it (exceptions included)? The scores are word overlaps; the reading is the check |
+| 2 | Read | For every suggestion, open the memory and the best match yourself: is the rule really there, all of it (exceptions included)? The scores are word overlaps for your triage; the reading is the check |
 | 3 | Triage | One row per memory in [templates/retro-report.md](templates/retro-report.md): layer it belongs to, action (write, hook, extend skill, shrink, delete), and the past incidents with dates as evidence. See [triage](references/triage.md) |
-| 4 | Agree | Show the report to the user: proposed rule texts in English, the hook rules, deletions. The user decides |
+| 4 | Agree | Show the report to the user: conclusions only (where each rule is now, where it belongs, what to do, the evidence), proposed rule texts in English, the hook rules, deletions; no scan scores or percentages. The user decides |
 | 5 | Kit PR | Branch in claude-kit from fresh `main`; hook rules with tests, skill items, descriptions, `past-mistakes.md` rows, marketplace and README rows; `claude plugin validate`, `node --test`, the public-repo grep. See [the kit PR](references/kit-pr.md) |
 | 6 | Outside the kit | After "yes": `~/.claude/CLAUDE.md` lines (show the diff), project `CLAUDE.md` lines (a PR in that project), memory files shrunk or deleted, `MEMORY.md` lines rewritten to match their files |
 | 7 | After the merge | `claude plugin marketplace update claude-kit`; hooks load in the next session. Say what is enforced now that was not before |

@@ -35,7 +35,8 @@ needs it.
   `PLAN.md` or memory, and when a rule moves up a layer.
 
 The scripts are Node with no dependencies and only read; run them with `node` from the skill's folder. Their scores
-are triage aids: the skills say to read the best match before acting on it.
+are triage aids for Claude: the skills say to read the best match before acting on it, and the retro report shows the
+user conclusions only, no percentages.
 
 ## No hook
 

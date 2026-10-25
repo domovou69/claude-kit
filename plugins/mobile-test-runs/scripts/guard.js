@@ -13,9 +13,6 @@ const { execFileSync } = require('node:child_process');
 const fs = require('node:fs');
 const path = require('node:path');
 
-const SHELLS = new Set(['sh', 'bash', 'zsh', 'dash', 'ksh']);
-const WRAPPERS = new Set(['command', 'builtin', 'exec', 'nohup', 'time', 'sudo', 'nice', 'env']);
-const KEYWORDS = new Set(['if', 'then', 'else', 'elif', 'fi', 'do', 'done', 'while', 'until', '!', '{', '}']);
 const RUNNERS = new Set(['node', 'deno', 'bun', 'python', 'python3', 'ruby', 'bash', 'sh', 'zsh', 'make']);
 const PACKAGE_MANAGERS = new Set(['npm', 'pnpm', 'yarn', 'bun']);
 const TIMED_FILE = /^(bench|benchmark|benchmarks|perf|scale)(\.[cm]?[jt]s|\.py|\.sh)?$/i;
@@ -24,143 +21,8 @@ const BYPASS = 'MOBILE_RUNS_ALLOW_BATTERY';
 
 // ---------------------------------------------------------------- shell parsing
 
-// Splits a shell command line into simple commands (arrays of words). Handles quotes, escapes, ; & | && ||,
-// newlines, ( ) groups, $( ) and backticks, comments, redirections (their targets are dropped) and heredocs
-// (bodies are skipped). `bash -c "…"` and `eval "…"` are expanded later by expand().
-function parseCommands(src) {
-  const out = [];
-  const heredocs = [];
-  let words = [];
-  let word = null;
-  let drop = false;
-  let i = 0;
-
-  const add = (s) => { word = (word ?? '') + s; };
-  const endWord = () => {
-    if (word === null) return;
-    if (drop) drop = false;
-    else words.push(word);
-    word = null;
-  };
-  const endCmd = () => {
-    endWord();
-    drop = false;
-    if (words.length) out.push(words);
-    words = [];
-  };
-  const skipHeredocs = () => {
-    while (heredocs.length) {
-      const delim = heredocs.shift();
-      while (i < src.length) {
-        let nl = src.indexOf('\n', i);
-        if (nl < 0) nl = src.length;
-        const line = src.slice(i, nl);
-        i = nl + 1;
-        if (line.trim() === delim) break;
-      }
-    }
-  };
-
-  while (i < src.length) {
-    const c = src[i];
-    if (c === '\\') {
-      if (src[i + 1] !== '\n') add(src[i + 1] ?? '');
-      i += 2;
-    } else if (c === "'") {
-      let j = src.indexOf("'", i + 1);
-      if (j < 0) j = src.length;
-      add(src.slice(i + 1, j));
-      i = j + 1;
-    } else if (c === '"') {
-      let s = '';
-      i++;
-      while (i < src.length && src[i] !== '"') {
-        if (src[i] === '\\' && '"\\$`'.includes(src[i + 1])) { s += src[i + 1]; i += 2; } else s += src[i++];
-      }
-      add(s);
-      i++;
-    } else if (c === '#' && word === null) {
-      while (i < src.length && src[i] !== '\n') i++;
-    } else if (c === '\n') {
-      endCmd();
-      i++;
-      skipHeredocs();
-    } else if (c === ' ' || c === '\t') {
-      endWord();
-      i++;
-    } else if (c === '<' && src.startsWith('<<', i) && src[i + 2] !== '<') {
-      endWord();
-      i += 2;
-      if (src[i] === '-') i++;
-      while (src[i] === ' ' || src[i] === '\t') i++;
-      let d = '';
-      while (i < src.length && !/[\s;&|<>()]/.test(src[i])) {
-        if (!`"'\\`.includes(src[i])) d += src[i];
-        i++;
-      }
-      heredocs.push(d);
-    } else if (c === '<' || c === '>' || (c === '&' && src[i + 1] === '>')) {
-      if (word !== null && /^\d+$/.test(word)) word = null; // a file descriptor number, not an argument
-      else endWord();
-      while (i < src.length && '<>&|'.includes(src[i])) i++;
-      drop = true; // the redirection target
-    } else if (c === '$' && src[i + 1] === '(') {
-      endCmd();
-      i += 2;
-    } else if (';&|()`'.includes(c)) {
-      endCmd();
-      i++;
-    } else {
-      add(c);
-      i++;
-    }
-  }
-  endCmd();
-  return out;
-}
-
-// Strips keywords, VAR=value prefixes and wrappers (nohup, env, caffeinate, …) from a simple command.
-function unwrap(raw) {
-  const env = {};
-  let caffeinate = false;
-  const w = [...raw];
-  for (;;) {
-    while (w.length && KEYWORDS.has(w[0])) w.shift();
-    while (w.length && /^[A-Za-z_]\w*=/.test(w[0])) {
-      const s = w.shift();
-      env[s.slice(0, s.indexOf('='))] = s.slice(s.indexOf('=') + 1);
-    }
-    if (!w.length) break;
-    const b = path.basename(w[0]);
-    if (b === 'caffeinate') {
-      caffeinate = true;
-      w.shift();
-      while (w.length && w[0].startsWith('-')) {
-        const f = w.shift();
-        if (/[wt]$/.test(f) && w.length) w.shift(); // -w <pid>, -t <seconds>
-      }
-    } else if (WRAPPERS.has(b)) {
-      w.shift();
-      while (w.length && w[0].startsWith('-')) w.shift();
-    } else break;
-  }
-  return { env, caffeinate, words: w };
-}
-
-// All simple commands of a command line, with `bash -c "…"` and `eval "…"` parsed recursively.
-function expand(src, depth = 0) {
-  const out = [];
-  for (const raw of parseCommands(src)) {
-    const cmd = unwrap(raw);
-    out.push(cmd);
-    if (depth > 3 || !cmd.words.length) continue;
-    const b = path.basename(cmd.words[0]);
-    const c = cmd.words.indexOf('-c');
-    if (SHELLS.has(b) && c > 0 && cmd.words[c + 1] !== undefined) out.push(...expand(cmd.words[c + 1], depth + 1));
-    if (b === 'eval') out.push(...expand(cmd.words.slice(1).join(' '), depth + 1));
-  }
-  return out;
-}
+// shell-parse.js is a copy of shared/shell-parse.js (node scripts/sync-shared.js); do not edit it here.
+const { parseCommands, expand } = require('./shell-parse');
 
 // ---------------------------------------------------------------- classification
 

@@ -5,8 +5,9 @@ The retro's output for the kit is one PR to the claude-kit repository. It follow
 ## Before the branch
 
 - Clone or update the kit repository (not the installed marketplace copy, which is replaced on every update).
-- Branch from a fresh `origin/main`: `git switch -c retro/<date or topic> origin/main`. Never stack on an open PR; if
-  the previous kit PR is not merged, ask the user to merge it first.
+- Branch from a fresh `origin/main`: `git switch -c retro/<date or topic> origin/main`. The PR targets `main` (or, on
+  purpose, a long-lived branch such as `release/*`), never another open PR's branch; if the previous kit PR is not
+  merged, ask the user to merge it first.
 
 ## What goes in
 

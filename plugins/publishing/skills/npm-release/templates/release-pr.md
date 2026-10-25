@@ -1,6 +1,6 @@
 <!--
 Title: release: X.Y.Z (SHORT REASON)
-Base: main (never another PR's branch). Branch: release/X.Y.Z from fresh origin/main.
+Base: main, or on purpose a long-lived branch (release/*, a version branch); never another open PR's branch. Branch: release/X.Y.Z from a fresh copy of the base.
 -->
 Version X.Y.Z (PATCH / MINOR / MAJOR: WHY). Only the version in `package.json` changes here; the code is already on
 `main`.

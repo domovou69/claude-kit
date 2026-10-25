@@ -12,126 +12,11 @@ const os = require('node:os');
 const path = require('node:path');
 
 const PROTECTED = new Set(['main', 'master']);
-const SHELLS = new Set(['sh', 'bash', 'zsh', 'dash', 'ksh']);
-const WRAPPERS = new Set(['command', 'builtin', 'exec', 'nohup', 'time', 'sudo', 'nice', 'xargs']);
 
 // ---------------------------------------------------------------- shell parsing
 
-// Splits a shell command line into simple commands (arrays of words).
-// Handles quotes, escapes, ; && || | & newlines, ( ) and { } groups,
-// $( ) and backtick substitutions (their commands are listed before the
-// command that contains them) and heredocs (bodies are skipped).
-function parseCommands(src) {
-  const out = [];
-  let i = 0;
-
-  function list(stop) {
-    let words = [];
-    let word = null;
-    let dropNext = false;
-    const heredocs = [];
-
-    const add = (s) => { word = (word ?? '') + s; };
-    const endWord = () => {
-      if (word === null) return;
-      if (dropNext) dropNext = false;
-      else words.push(word);
-      word = null;
-    };
-    const endCmd = () => {
-      endWord();
-      if (words.length) out.push(words);
-      words = [];
-    };
-    const skipHeredocs = () => {
-      while (heredocs.length) {
-        const delim = heredocs.shift();
-        while (i < src.length) {
-          let nl = src.indexOf('\n', i);
-          if (nl < 0) nl = src.length;
-          const line = src.slice(i, nl);
-          i = nl + 1;
-          if (line.trim() === delim) break;
-        }
-      }
-    };
-    const substitution = (close) => {
-      list(close);
-      add('$()');
-    };
-
-    while (i < src.length) {
-      const c = src[i];
-      if (c === stop) { i++; endCmd(); return; }
-      if (c === '\\') {
-        if (src[i + 1] !== '\n') add(src[i + 1] ?? '');
-        i += 2;
-      } else if (c === "'") {
-        const j = src.indexOf("'", i + 1);
-        const end = j < 0 ? src.length : j;
-        add(src.slice(i + 1, end));
-        i = end + 1;
-      } else if (c === '"') {
-        add('');
-        i++;
-        while (i < src.length && src[i] !== '"') {
-          if (src[i] === '\\' && '"\\$`\n'.includes(src[i + 1])) { add(src[i + 1]); i += 2; }
-          else if (src[i] === '$' && src[i + 1] === '(') { i += 2; substitution(')'); }
-          else if (src[i] === '`') { i++; substitution('`'); }
-          else { add(src[i]); i++; }
-        }
-        i++;
-      } else if (c === '$' && src[i + 1] === '(') {
-        i += 2;
-        substitution(')');
-      } else if (c === '`') {
-        i++;
-        substitution('`');
-      } else if (c === '#' && word === null) {
-        while (i < src.length && src[i] !== '\n') i++;
-      } else if (c === '\n') {
-        endCmd();
-        i++;
-        skipHeredocs();
-      } else if (c === ' ' || c === '\t') {
-        endWord();
-        i++;
-      } else if (c === '(' || ((c === '{' || c === '}') && word === null)) {
-        endCmd();
-        i++;
-        if (c === '(') list(')');
-      } else if (';&|)'.includes(c)) {
-        endCmd();
-        i++;
-      } else if (c === '<' && src[i + 1] === '<' && src[i + 2] !== '<') {
-        endWord();
-        i += 2;
-        if (src[i] === '-') i++;
-        while (src[i] === ' ' || src[i] === '\t') i++;
-        let delim = '';
-        while (i < src.length && !' \t\n;&|<>()'.includes(src[i])) {
-          if (src[i] !== "'" && src[i] !== '"' && src[i] !== '\\') delim += src[i];
-          i++;
-        }
-        heredocs.push(delim);
-      } else if (c === '<' || c === '>') {
-        if (word !== null && /^\d+$/.test(word)) word = null;
-        endWord();
-        i++;
-        while (src[i] === '<' || src[i] === '>' || src[i] === '&' || src[i] === '|') i++;
-        if (/\d/.test(src[i] ?? '') && !/\S/.test(src[i + 1] ?? '')) i++;
-        else dropNext = true;
-      } else {
-        add(c);
-        i++;
-      }
-    }
-    endCmd();
-  }
-
-  list(null);
-  return out;
-}
+// shell-parse.js is a copy of shared/shell-parse.js (node scripts/sync-shared.js); do not edit it here.
+const { parseCommands, expand } = require('./shell-parse');
 
 // ---------------------------------------------------------------- git state
 
@@ -171,38 +56,19 @@ function stripHeads(ref) {
   return ref.replace(/^refs\/heads\//, '');
 }
 
-function analyze(cmds, state) {
-  for (const raw of cmds) {
-    const msg = analyzeOne(raw, state);
+// Simple commands in order (bash -c and eval bodies right after their command), so `cd` and
+// `git switch -c` earlier in the line are seen before a later commit or push.
+function analyze(command, state) {
+  for (const cmd of expand(command)) {
+    const msg = analyzeOne(cmd.words, state);
     if (msg) return msg;
   }
   return null;
 }
 
-function analyzeOne(raw, state) {
-  let w = raw.slice();
-  // Leading assignments and wrappers: FOO=1 sudo env -i git commit ...
-  for (;;) {
-    if (!w.length) return null;
-    if (/^[A-Za-z_][A-Za-z0-9_]*=/.test(w[0])) { w.shift(); continue; }
-    const base = path.basename(w[0]);
-    if (WRAPPERS.has(base)) { w.shift(); while (w.length && w[0].startsWith('-')) w.shift(); continue; }
-    if (base === 'env') {
-      w.shift();
-      while (w.length && (w[0].startsWith('-') || /^[A-Za-z_][A-Za-z0-9_]*=/.test(w[0]))) w.shift();
-      continue;
-    }
-    break;
-  }
-
+function analyzeOne(w, state) {
+  if (!w.length) return null;
   const base = path.basename(w[0]);
-
-  if (SHELLS.has(base)) {
-    const k = w.findIndex((a, n) => n > 0 && /^-[a-z]*c[a-z]*$/.test(a));
-    if (k > 0 && w[k + 1] !== undefined) return analyze(parseCommands(w[k + 1]), state);
-    return null;
-  }
-  if (base === 'eval') return analyze(parseCommands(w.slice(1).join(' ')), state);
 
   if ((base === 'cd' || base === 'pushd') && w[1] && w[1] !== '-') {
     state.cwd = path.resolve(state.cwd, w[1].replace(/^~(?=$|\/)/, os.homedir()));
@@ -318,7 +184,7 @@ function main() {
   if (typeof command !== 'string' || !/\bgit\b/.test(command)) return 0;
 
   const state = { cwd: input.cwd || process.cwd(), branch: new Map(), firstCommit: new Set() };
-  const msg = analyze(parseCommands(command), state);
+  const msg = analyze(command, state);
   if (!msg) return 0;
   process.stderr.write(msg + '\n');
   return 2;

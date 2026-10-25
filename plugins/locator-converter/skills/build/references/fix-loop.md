@@ -48,8 +48,9 @@ for (const [input, want] of cases) {
 
 ## Branches and PRs
 
-- A new branch from a freshly pulled main for every fix; a PR into main.
-- **No stacked PRs.** When a PR's base is another PR's branch and that base is merged first, the second PR merges
+- A new branch from a freshly pulled main for every fix; a PR into main (or, on purpose, a long-lived branch such as
+  `release/*` or a version branch, branched from a fresh copy of it).
+- **No stacked PRs.** Never target another open PR's branch: when a PR's base is another PR's branch and that base is merged first, the second PR merges
   into a dead branch and never reaches main. It happened twice in these projects. If the next fix needs an unmerged
   one, ask for the merge first.
 - Commit only after checking the branch in the same command:

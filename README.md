@@ -46,6 +46,14 @@ For one repository only, run `claude plugin install <plugin>@claude-kit --scope 
 
 Plugins here carry no `version`, so an update means a new commit on `main`. Pull it with `/plugin marketplace update claude-kit` (or `claude plugin update <plugin>@claude-kit`), or turn on auto-update for the marketplace under **Marketplaces** in `/plugin`.
 
+## Development
+
+Tests: `node --test` from the repository root (Node 18 or newer, git).
+
+The hook guards share one shell parser. Its source is [shared/shell-parse.js](shared/shell-parse.js); each plugin with
+a guard carries a copy in its `scripts/` folder, because a plugin installs on its own and cannot load files outside
+it. Edit the source, then run `node scripts/sync-shared.js`; `node --test` fails while a copy differs.
+
 ## License
 
 [MIT](LICENSE)
