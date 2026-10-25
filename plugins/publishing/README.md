@@ -18,7 +18,8 @@ Skills and a hook for putting a tool in front of people: the npm release, the de
   templates (npm-page [README](skills/npm-release/templates/README.md), [release PR](skills/npm-release/templates/release-pr.md),
   [project rules](skills/npm-release/templates/project-rules.md) for `CLAUDE.md`) and
   [`scripts/release-check.js`](skills/npm-release/scripts/release-check.js): README length and badge, metadata, `bin`
-  mode in git and shebang, version against npm, tag, branch against `origin/main`, `npm pack` file list.
+  mode in git and shebang, version against npm, tag, branch against `origin/main` (or `--base <branch>`), `npm pack`
+  file list; `--offline` keeps it off the network.
 - **devto-article**: six rules (repo copy is the source; every number from a data file; nothing unreleased; dev.to
   format; link back the same day from fresh `main`; the user publishes and owns claims about themselves), an 11-step
   workflow, references ([dev.to format](skills/devto-article/references/devto-format.md),
@@ -47,10 +48,19 @@ heredocs, `bash -c`), so a commit message or PR body that mentions `npm publish`
 | :- | :- |
 | `npm` / `pnpm` / `yarn` / `bun` `publish`, `unpublish`, `deprecate`, `access`, `dist-tag add/rm`, `owner add/rm`; `np`, `release-it`, `semantic-release`, `lerna publish`, `changeset publish` (also through `npx` / `dlx` / `npm exec`) | Denied: the user runs registry writes. `--dry-run` passes |
 | `gh release create/edit/delete/upload`, `git push` of a tag (`--tags`, `--follow-tags`, `vX.Y.Z`, `refs/tags/…`) | The user is asked |
+| `npm run <script>`, `yarn <script>`, `pnpm run <script>` where the project's `package.json` script runs one of the above | Denied: the script is read from the working directory |
+| `gh workflow run` (a workflow can publish or release) | The user is asked |
 | `gh repo edit`, `gh api` writes to `…/pages` | The user is asked |
 | `curl` / `wget` / `http` writes to `dev.to/api/` | The user is asked |
 
 On an internal error the hook lets the command through and says so on stderr.
+
+## Limits
+
+It guards what Claude runs through the Bash tool, not your own terminal or CI. It reads only the script named on the
+command line from the `package.json` in the working directory: a script that calls another script, a Makefile target
+or a shell file that publishes is not followed, and a workflow that publishes is only asked about (`gh workflow run`),
+not read. Commands assembled from variables are not seen.
 
 ## Test
 

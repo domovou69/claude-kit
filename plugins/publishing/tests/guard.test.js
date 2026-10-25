@@ -123,3 +123,19 @@ test('cli: allow is silent; broken input fails open', () => {
   assert.strictEqual(b.status, 0);
   assert.match(b.stderr, /internal error, command allowed/);
 });
+
+test('gh workflow run asks; a package.json script that publishes is denied', () => {
+  const fs = require('node:fs');
+  const os = require('node:os');
+  assert.strictEqual(bash('gh workflow run release.yml'), 'ask');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pub-script-'));
+  fs.writeFileSync(path.join(dir, 'package.json'), JSON.stringify({ scripts: { release: 'npm test && npm publish', test: 'node --test', ship: 'timeout 60 npm publish --dry-run' } }));
+  const at = (command) => g.decide('Bash', { command }, dir).decision;
+  assert.strictEqual(at('npm run release'), 'deny');
+  assert.strictEqual(at('yarn release'), 'deny');
+  assert.strictEqual(at('pnpm run release'), 'deny');
+  assert.strictEqual(at('npm run test'), 'allow');
+  assert.strictEqual(at('npm run ship'), 'allow');
+  assert.strictEqual(at('npm run missing'), 'allow');
+  assert.strictEqual(g.decide('Bash', { command: 'npm run release' }, path.join(dir, 'nowhere')).decision, 'allow');
+});

@@ -71,6 +71,8 @@ const onFeature = { commits: 1, switchTo: 'topic' };
 expect('first commit on main in an empty repo', {}, 'git commit -m init', 0);
 expect('first commit chained after git add', {}, 'git add -A && git commit -m init', 0);
 expect('second commit on main', onMain, 'git commit -m second', 2);
+expect('commit with a quoted git word', onMain, "g'i't commit -m x", 2);
+expect('commit with an escaped git word', onMain, 'g\\it commit -m x', 2);
 expect('commit on master', { commits: 1, branch: 'master' }, 'git commit -m x', 2);
 expect('commit --amend on main', onMain, 'git commit --amend --no-edit', 2);
 

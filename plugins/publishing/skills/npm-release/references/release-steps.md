@@ -18,6 +18,9 @@ npm version X.Y.Z --no-git-tag-version   # package.json (and the lock file) only
 node <skill>/scripts/release-check.js     # on the branch: README, bin, metadata, version, pack
 ```
 
+- Run the check with `--base <branch>` when the release is cut from a long-lived branch (`release/1.x`): it then
+  compares that branch with `origin/<branch>` instead of `main`. `--offline` keeps the check off the network
+  (no `npm view`, no `git fetch`).
 - Base `main` (`gh pr create --base main`), or on purpose a long-lived branch the release is cut from (`release/*`, a
   version branch such as `1.x`). Never another open PR's branch: one PR merged into a branch that had already been
   merged never reached `main`, and the fix was a cherry-pick PR.

@@ -3,7 +3,7 @@
 // Denies registry writes, which only the user runs: npm / pnpm / yarn / bun publish, unpublish, deprecate,
 // dist-tag add/rm, owner add/rm, access, and release tools that publish (np, release-it, semantic-release,
 // lerna publish, changeset publish). `--dry-run` publishes nothing and passes.
-// Asks the user before other public release actions: gh release create/edit/delete/upload, pushing tags,
+// Asks the user before other public release actions: gh release create/edit/delete/upload, gh workflow run, pushing tags,
 // gh repo edit, enabling or changing GitHub Pages through gh api, and writes to the dev.to API.
 // A block is exit 2 with the reason on stderr; an ask is JSON on stdout.
 // No dependencies; any internal error fails open (exit 0) so the guard never wedges a session.
@@ -23,7 +23,15 @@ const WRITE_METHODS = /^(POST|PUT|PATCH|DELETE)$/i;
 // ---------------------------------------------------------------- shell parsing
 
 // shell-parse.js is a copy of shared/shell-parse.js (node scripts/sync-shared.js); do not edit it here.
-const { parseCommands, expand } = require('./shell-parse');
+let parseCommands;
+let expand;
+try {
+  ({ parseCommands, expand } = require('./shell-parse'));
+} catch (e) {
+  if (require.main !== module) throw e;
+  process.stderr.write(`publishing: internal error, command allowed: ${e.message}\n`);
+  process.exit(0);
+}
 
 // ---------------------------------------------------------------- decisions
 
@@ -70,6 +78,7 @@ function releaseAction(words) {
   const args = positional(words.slice(1));
   if (b === 'gh') {
     if (args[0] === 'release' && /^(create|edit|delete|upload|delete-asset)$/.test(args[1] || '')) return `gh release ${args[1]}`;
+    if (args[0] === 'workflow' && args[1] === 'run') return 'gh workflow run (a workflow can publish or release; check what it does)';
     if (args[0] === 'repo' && args[1] === 'edit') return 'gh repo edit (changes the public repository settings)';
     if (args[0] === 'api' && words.some((w) => /(^|\/)pages(\/|$)/.test(w))) {
       const m = methodOf(words);
@@ -93,8 +102,25 @@ function releaseAction(words) {
   return null;
 }
 
+// `npm run release`, `yarn release`: the package.json script of the project, when it is a registry write.
+function scriptWrite(words, cwd) {
+  if (!MANAGERS.has(base(words[0]))) return null;
+  const args = positional(words.slice(1));
+  const name = args[0] === 'run' || args[0] === 'run-script' ? args[1] : base(words[0]) === 'npm' ? null : args[0];
+  if (!name) return null;
+  try {
+    const script = JSON.parse(fs.readFileSync(path.join(cwd || process.cwd(), 'package.json'), 'utf8')).scripts?.[name];
+    if (typeof script !== 'string') return null;
+    for (const c of expand(script)) {
+      const w = c.words.length && registryWrite(c.words);
+      if (w) return `the package.json script "${name}" runs ${w}`;
+    }
+  } catch { /* no package.json or not JSON: nothing to read */ }
+  return null;
+}
+
 // Returns { decision: 'allow' | 'ask' | 'deny', reasons: [...] }.
-function decide(toolName, input) {
+function decide(toolName, input, cwd) {
   if (toolName !== 'Bash') return { decision: 'allow', reasons: [] };
   const deny = [];
   const ask = [];
@@ -103,6 +129,8 @@ function decide(toolName, input) {
     const line = c.words.join(' ');
     const w = registryWrite(c.words);
     if (w) deny.push(`\`${line}\` blocked: ${w} writes to the package registry, and only the user runs that. Finish the checks in publishing:npm-release, then ask the user to run it themselves (in a terminal, or as \`! ${line}\` in the prompt). \`npm publish --dry-run\` and \`npm pack --dry-run\` are allowed.`);
+    const s = scriptWrite(c.words, cwd);
+    if (s) deny.push(`\`${line}\` blocked: ${s}, which writes to the package registry, and only the user runs that. Ask the user to run it themselves.`);
     const r = releaseAction(c.words);
     if (r) ask.push(`\`${line}\` is ${r}.`);
   }
@@ -115,7 +143,7 @@ function decide(toolName, input) {
 
 function main() {
   const payload = JSON.parse(fs.readFileSync(0, 'utf8') || '{}');
-  const { decision, reasons } = decide(payload.tool_name, payload.tool_input || {});
+  const { decision, reasons } = decide(payload.tool_name, payload.tool_input || {}, payload.cwd);
   if (decision === 'deny') {
     process.stderr.write(reasons.map((r) => `publishing: ${r}`).join('\n') + '\n');
     return 2;
@@ -138,4 +166,4 @@ if (require.main === module) {
   process.exit(code);
 }
 
-module.exports = { parseCommands, expand, registryWrite, releaseAction, decide };
+module.exports = { parseCommands, expand, registryWrite, releaseAction, scriptWrite, decide };

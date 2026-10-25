@@ -1,7 +1,9 @@
 #!/usr/bin/env node
 // Pre-release check for an npm package: run it on the release branch before the bump PR, and again on main after
 // the merge, before the user runs `npm publish`.
-//   node release-check.js [package dir] [--offline] [--max-readme-lines 120] [--expect-files 13]
+//   node release-check.js [package dir] [--offline] [--base <branch>] [--max-readme-lines 120] [--expect-files 13]
+// --base names a long-lived release branch (release/1.x, 1.x) used instead of main / master. Without --offline the
+// check asks the registry (npm view) and fetches the base branch from origin; with it nothing leaves the machine.
 // Checks package.json metadata, README length and badge, the executable bit of every `bin` file in git, the version
 // against the registry, the release tag, the branch, and the `npm pack --dry-run` file list.
 // Prints one line per check; exit 1 when a FAIL is found. Node, no dependencies. Never publishes anything.
@@ -95,10 +97,10 @@ function checkTag(version, tagType, tagCommit, head) {
   return out;
 }
 
-function checkBranch(branch, head, originMain, dirty) {
+function checkBranch(branch, head, originMain, dirty, base) {
   const out = [];
   if (dirty) out.push(['WARN', 'uncommitted changes: npm publish packs the working tree, not the commit']);
-  if (branch === 'main' || branch === 'master') {
+  if (branch === base || (!base && (branch === 'main' || branch === 'master'))) {
     out.push(originMain && head === originMain ? ['PASS', `on ${branch}, equal to origin`] : ['FAIL', `on ${branch} but HEAD differs from origin/${branch}: pull (or the bump PR was merged into another branch, not main)`]);
   } else {
     out.push(['PASS', `on ${branch}: fine for the bump PR; the user publishes from an up-to-date main after the merge`]);
@@ -125,9 +127,10 @@ function sh(cmd, args, cwd) {
 }
 
 function main(argv) {
-  const opt = { dir: '.', offline: false, maxLines: 120, expect: 0 };
+  const opt = { dir: '.', offline: false, base: null, maxLines: 120, expect: 0 };
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === '--offline') opt.offline = true;
+    else if (argv[i] === '--base') opt.base = argv[++i];
     else if (argv[i] === '--max-readme-lines') opt.maxLines = Number(argv[++i]);
     else if (argv[i] === '--expect-files') opt.expect = Number(argv[++i]);
     else opt.dir = argv[i];
@@ -146,10 +149,11 @@ function main(argv) {
 
   const head = sh('git', ['rev-parse', 'HEAD'], dir) || '';
   const branch = sh('git', ['branch', '--show-current'], dir) || '';
-  if (!opt.offline) sh('git', ['fetch', '--quiet', 'origin', branch === 'master' ? 'master' : 'main'], dir);
-  const originMain = sh('git', ['rev-parse', `origin/${branch === 'master' ? 'master' : 'main'}`], dir);
+  const base = opt.base || (branch === 'master' ? 'master' : 'main');
+  if (!opt.offline) sh('git', ['fetch', '--quiet', 'origin', base], dir);
+  const originMain = sh('git', ['rev-parse', `origin/${base}`], dir);
   const dirty = (sh('git', ['status', '--porcelain'], dir) || '').length > 0;
-  results.push(...checkBranch(branch, head, originMain, dirty));
+  results.push(...checkBranch(branch, head, originMain, dirty, opt.base));
   const tag = `v${pkg.version}`;
   const tagType = sh('git', ['cat-file', '-t', `refs/tags/${tag}`], dir) || '';
   results.push(...checkTag(pkg.version, tagType, tagType ? sh('git', ['rev-list', '-n', '1', tag], dir) || '' : '', head));

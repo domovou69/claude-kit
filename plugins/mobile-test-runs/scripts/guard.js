@@ -22,7 +22,15 @@ const BYPASS = 'MOBILE_RUNS_ALLOW_BATTERY';
 // ---------------------------------------------------------------- shell parsing
 
 // shell-parse.js is a copy of shared/shell-parse.js (node scripts/sync-shared.js); do not edit it here.
-const { parseCommands, expand } = require('./shell-parse');
+let parseCommands;
+let expand;
+try {
+  ({ parseCommands, expand } = require('./shell-parse'));
+} catch (e) {
+  if (require.main !== module) throw e;
+  process.stderr.write(`mobile-test-runs: internal error, command allowed: ${e.message}\n`);
+  process.exit(0);
+}
 
 // ---------------------------------------------------------------- classification
 
@@ -74,7 +82,10 @@ function loadConfig(dir) {
     const j = JSON.parse(fs.readFileSync(file, 'utf8'));
     cfg.timedRuns = (j.timedRuns || []).map((s) => new RegExp(s));
     cfg.deviceRuns = (j.deviceRuns || []).map((s) => new RegExp(s));
-    if (j.defaults === false) cfg.defaults = false;
+    if (j.defaults === false) {
+      cfg.defaults = false;
+      cfg.warnings.push(`mobile-test-runs: ${file} sets "defaults": false, so the built-in timed and device run patterns are off; only its own patterns apply.`);
+    }
   } catch (e) {
     cfg.warnings.push(`mobile-test-runs: ignoring ${file}: ${e.message}`);
   }
@@ -87,7 +98,7 @@ function sh(cmd, args) {
 
 // Power source, Low Power Mode, display-sleep assertion and running emulators (macOS only).
 function probeHost() {
-  if (process.env.MOBILE_RUNS_HOST) return JSON.parse(process.env.MOBILE_RUNS_HOST); // test seam
+  if (process.env.MOBILE_RUNS_TEST === '1' && process.env.MOBILE_RUNS_HOST) return JSON.parse(process.env.MOBILE_RUNS_HOST); // test seam
   if (process.platform !== 'darwin') return { platform: process.platform };
   const batt = sh('pmset', ['-g', 'batt']) || '';
   const g = sh('pmset', ['-g']) || '';
