@@ -23,6 +23,16 @@ const GOOD_PLAN = `# Plan — my-tool
 | --- | --- | --- | --- | --- |
 | Driver | 8.7.0, 2026-09 | none found | — | green, 3+ years |
 
+## Definition of Done
+
+| Goal | How it is measured | Now | Target | Ceiling |
+| --- | --- | --- | --- | --- |
+| Correct conversions | harness, real corpus | 72 | 95 | 96 |
+
+## Out of scope
+
+- Android: another project.
+
 ## Stages
 
 | # | Stage | Output | Wall time | Window | Status |
@@ -68,6 +78,14 @@ test('stages without estimates, no total, no cheaper path, no decisions warn; a 
   assert.strictEqual(level(c.checkPlan(noTable), /stage table/), 'FAIL');
 });
 
+test('a plan without a Definition of Done or an out-of-scope section warns', () => {
+  const r = c.checkPlan(GOOD_PLAN.replace('## Definition of Done', '## Goals').replace('## Out of scope', '## Notes'));
+  assert.strictEqual(level(r, /Definition of Done/), 'WARN');
+  assert.strictEqual(level(r, /Out of scope/), 'WARN');
+  assert.strictEqual(level(c.checkPlan(GOOD_PLAN), /Definition of Done section/), 'PASS');
+  assert.strictEqual(level(c.checkPlan(GOOD_PLAN), /out-of-scope section/), 'PASS');
+});
+
 test('"## Phase N" sections without an estimate warn', () => {
   const phases = `${GOOD_PLAN}\n## Phase 4 — LLM grid\n\nRun every model at every effort.\n\n## Phase 5 — fixes\n\nAbout ≈40 min, ≈8 %.\n`;
   assert.match(c.checkPlan(phases).find((x) => /sections without/.test(x[1]))[1], /Phase 4$/);
@@ -88,6 +106,11 @@ test('the shipped templates have slots, a health check first, a total and a deci
   assert.strictEqual(level(r, /verdict/), 'FAIL', 'an unfilled verdict slot is not a verdict');
   assert.strictEqual(level(r, /has a total/), 'PASS');
   assert.strictEqual(level(r, /decisions section/), 'PASS');
+  assert.strictEqual(level(r, /Definition of Done section/), 'PASS');
+  assert.strictEqual(level(r, /out-of-scope section/), 'PASS');
+  for (const title of ['Architecture before code', 'Budgets', 'Stage-end criterion', 'Maintenance mode']) {
+    assert.ok(plan.includes(`## ${title}`), `template section "${title}"`);
+  }
 });
 
 test('personal rules copied into the project CLAUDE.md are flagged', () => {

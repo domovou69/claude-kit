@@ -1,0 +1,170 @@
+<title>{{TITLE}}</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+{{CSS}}
+</style>
+<div class="page">
+{{BODY}}
+</div>
+<script>
+(function () {
+  var ageLabel = {{AGE_FN}};
+  var DAY = 86400000;
+  function parseDay(s) { var p = s.split('-'); return Date.UTC(+p[0], +p[1] - 1, +p[2]); }
+  function today() { var d = new Date(); return Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()); }
+  function ageDays(s) { return Math.round((today() - parseDay(s)) / DAY); }
+
+  // "updated 2026-10-25 (3 days ago)": computed here so it stays right while the page stays open.
+  document.querySelectorAll('[data-age-of]').forEach(function (el) {
+    el.textContent = '(' + ageLabel(ageDays(el.getAttribute('data-age-of'))) + ')';
+  });
+
+  // Copy the stage prompt.
+  document.querySelectorAll('.copy').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var wrap = btn.closest('.prompt-wrap');
+      var pre = wrap.querySelector('.prompt');
+      var done = function () {
+        btn.classList.add('ok');
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.classList.remove('ok'); btn.textContent = 'Copy stage prompt'; }, 2000);
+      };
+      var fallback = function () {
+        var details = wrap.querySelector('details');
+        if (details) details.open = true;
+        var range = document.createRange();
+        range.selectNodeContents(pre);
+        var sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+        btn.textContent = 'Select and copy below';
+      };
+      try {
+        navigator.clipboard.writeText(pre.textContent).then(done, fallback);
+      } catch (e) {
+        fallback();
+      }
+    });
+  });
+
+  // The info button opens the dates, the time and the estimate of a row, right under it.
+  document.querySelectorAll('.act.info').forEach(function (btn) {
+    btn.addEventListener('click', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      var box = document.getElementById(btn.getAttribute('aria-controls'));
+      var open = box.hidden;
+      box.hidden = !open;
+      btn.setAttribute('aria-expanded', String(open));
+    });
+  });
+
+  // A stage with a body opens and closes on a click of its row; now and next stages start open.
+  document.querySelectorAll('.row.clickable').forEach(function (row) {
+    var body = row.parentNode.querySelector('.stage-body');
+    function set(open) { body.hidden = !open; row.setAttribute('aria-expanded', String(open)); }
+    set(row.getAttribute('data-open') === '1');
+    row.addEventListener('click', function (e) {
+      if (e.target.closest('a, button')) return;
+      set(body.hidden);
+    });
+    row.addEventListener('keydown', function (e) {
+      if (e.target !== row || (e.key !== 'Enter' && e.key !== ' ')) return;
+      e.preventDefault();
+      set(body.hidden);
+    });
+  });
+
+  // Filter chips: "All" is on at first and the others are off. A click on another chip turns it on and All off (several
+  // can be on); a click on All turns the others off; turning the last one off brings All back.
+  function chipGroup(group, onChange) {
+    var chips = Array.prototype.slice.call(group.querySelectorAll('.chip-f'));
+    var all = chips.filter(function (c) { return c.getAttribute('data-key') === 'all'; })[0];
+    var rest = chips.filter(function (c) { return c !== all; });
+    function on(c) { return c.getAttribute('aria-pressed') === 'true'; }
+    function set(c, v) { c.setAttribute('aria-pressed', String(v)); }
+    all.addEventListener('click', function () { rest.forEach(function (c) { set(c, false); }); set(all, true); onChange(); });
+    rest.forEach(function (c) {
+      c.addEventListener('click', function () {
+        set(c, !on(c));
+        set(all, !rest.some(on));
+        onChange();
+      });
+    });
+    return { shows: function (key) { return on(all) || rest.some(function (c) { return c.getAttribute('data-key') === key && on(c); }); } };
+  }
+
+  // Stages: status chips and "Done since" for the done stages. Without this script every stage is visible.
+  var stagePanel = document.querySelector('.panel-stages');
+  var stageToolbar = stagePanel && stagePanel.querySelector('.toolbar');
+  if (stageToolbar) {
+    stageToolbar.hidden = false;
+    var rows = Array.prototype.slice.call(stagePanel.querySelectorAll('.stages > li[data-status]'));
+    var select = stageToolbar.querySelector('select');
+    var note = stagePanel.querySelector('.hidden-note');
+    var statusChips = stageToolbar.querySelector('.chips');
+    var fromButtons = Array.prototype.slice.call(stagePanel.querySelectorAll('.act.from'));
+    var group = statusChips ? chipGroup(statusChips, apply) : { shows: function () { return true; } };
+
+    var doneVisible = function (li, mode) {
+      var rank = +li.getAttribute('data-rank');
+      var kind = mode.split(':')[0];
+      var arg = mode.slice(kind.length + 1);
+      if (kind === 'all') return true;
+      if (kind === 'last') return rank < +arg;
+      if (kind === 'days') { var f = li.getAttribute('data-finished'); return !!f && ageDays(f) <= +arg; }
+      if (kind === 'from') {
+        var target = rows.filter(function (r) { return r.getAttribute('data-id') === arg; })[0];
+        return !!target && rank <= +target.getAttribute('data-rank');
+      }
+      return true;
+    };
+
+    function apply() {
+      var hiddenDone = 0;
+      rows.forEach(function (li) {
+        var status = li.getAttribute('data-status');
+        var show = group.shows(status);
+        if (show && status === 'done' && select && !doneVisible(li, select.value)) { show = false; hiddenDone++; }
+        li.hidden = !show;
+      });
+      if (note) {
+        note.hidden = hiddenDone === 0;
+        note.textContent = hiddenDone + (hiddenDone === 1 ? ' older done stage is hidden.' : ' older done stages are hidden.');
+      }
+      // The button of the stage the filter starts from turns into "Show all".
+      fromButtons.forEach(function (b) {
+        var active = !!select && select.value === 'from:' + b.getAttribute('data-id');
+        b.classList.toggle('on', active);
+        b.textContent = active ? 'Show all' : 'From here';
+        b.title = active ? 'Show every done stage again' : 'Hide the done stages older than this one';
+      });
+    }
+
+    if (select) select.addEventListener('change', apply);
+    fromButtons.forEach(function (b) {
+      b.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        select.value = b.classList.contains('on') ? 'all' : 'from:' + b.getAttribute('data-id');
+        apply();
+      });
+    });
+    apply();
+  }
+
+  // Found bugs: priority chips with counts.
+  var bugPanel = document.querySelector('.panel-bugs');
+  var bugToolbar = bugPanel && bugPanel.querySelector('.toolbar');
+  if (bugToolbar) {
+    bugToolbar.hidden = false;
+    var bugs = Array.prototype.slice.call(bugPanel.querySelectorAll('.issues > li[data-priority]'));
+    var bugGroup = chipGroup(bugToolbar.querySelector('.chips'), function () {
+      bugs.forEach(function (li) { li.hidden = !bugGroup.shows(li.getAttribute('data-priority')); });
+    });
+  }
+})();
+</script>

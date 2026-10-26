@@ -1,0 +1,48 @@
+{
+  "schema": 1,
+  "project": "<project name>",
+  "repo": "<owner>/<name>",
+  "updated": "<YYYY-MM-DD>",
+  "here": {
+    "stage": ["<where we are: the stage and its state>", "<one more fact, if there is one>"],
+    "next": ["<the next step and who does it>"]
+  },
+  "dod": [
+    {
+      "id": "metric-1",
+      "goal": "<what is measured, in the user's words>",
+      "unit": "%",
+      "start": 0,
+      "current": 0,
+      "target": 90,
+      "ceiling": 95,
+      "note": "<how it is measured; where the number comes from>"
+    }
+  ],
+  "stages": [
+    {
+      "id": "s0",
+      "title": "<scaffold: repository settings, CI, packaging basics>",
+      "status": "next",
+      "importance": "high",
+      "estimate": { "minutes": 30, "window_pct": 5 },
+      "note": "<what the stage delivers>",
+      "prompt": "<the prompt for the window that does this stage: what to read first, the task, the conditions>"
+    },
+    {
+      "id": "s1",
+      "title": "<stage 1>",
+      "status": "blocked",
+      "blocked_by": "s0",
+      "importance": "medium",
+      "estimate": { "minutes": 60, "window_pct": 12 },
+      "prompt": "<prompt for stage 1>",
+      "children": [
+        { "id": "s1a", "title": "<sub-stage>", "status": "next", "estimate": { "minutes": 20, "window_pct": 4 } }
+      ]
+    }
+  ],
+  "undecided": [
+    { "text": "<a question for the user>", "recommended": "<the recommended answer>" }
+  ]
+}

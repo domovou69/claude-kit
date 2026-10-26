@@ -2,7 +2,7 @@
 // Kickoff check for a project's PLAN.md and CLAUDE.md, before the plan PR.
 //   node kickoff-check.js [project dir] [--user-rules <file>]
 // PLAN.md: health check section first with a green / yellow / red verdict, a stage table with an estimate per stage,
-// a total, a cheaper path, a decisions section. Both files: no template slots left, no personal rules copied from
+// a total, a cheaper path, a decisions section, a Definition of Done and an out-of-scope section. Both files: no template slots left, no personal rules copied from
 // the user-level CLAUDE.md (default ~/.claude/CLAUDE.md), no device ids, tokens, e-mail addresses or local paths.
 // Prints one line per check; exit 1 when a FAIL is found. Read-only. Node, no dependencies.
 
@@ -93,6 +93,8 @@ function checkPlan(text) {
   // Plans written as "## Phase 3 — …" sections need an estimate in each of them too.
   const unestimated = secs.filter((s) => /^(phase|stage|step)\s*\d/i.test(s.title) && !/≈\s*\d|~\s*\d|\d+\s*(min|h)\b|\d+\s*%/.test(s.body));
   if (unestimated.length) out.push(['WARN', `sections without an estimate: ${unestimated.map((s) => s.title.split(/\s+[—–-]\s+/)[0]).join(', ')}`]);
+  out.push(secs.some((s) => /definition of done/i.test(s.title)) ? ['PASS', 'Definition of Done section'] : ['WARN', 'no "Definition of Done" section: measurable goals with a target and a ceiling, written before code (the stop criterion)']);
+  out.push(secs.some((s) => /out of scope|scope-out/i.test(s.title)) ? ['PASS', 'out-of-scope section'] : ['WARN', 'no "Out of scope" section: what the project will not do']);
   out.push(/cheap/i.test(text) ? ['PASS', 'cheaper path given'] : ['WARN', 'no cheaper path: say which stages can be dropped and what is lost']);
   out.push(secs.some((s) => /decision/i.test(s.title)) ? ['PASS', 'decisions section'] : ['WARN', 'no "Decisions" section: choices agreed in chat go there with a date']);
   return out;

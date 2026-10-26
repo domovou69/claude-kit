@@ -1,0 +1,60 @@
+# The plan page
+
+One page per project, the same look in every project. The plan itself (the reasoning) is `PLAN.md`; the live state is
+two files in the repository, and the page is built from them:
+
+| File | Holds | Written by |
+| --- | --- | --- |
+| `docs/plan.json` | Where we are, the Definition of Done with progress, stages and sub-stages with status, estimate, actual and prompt, what is undecided | Claude, at kickoff and at the end of every stage |
+| `docs/known-issues.md` | Found bugs and ideas, P1 / P2 / P3, each with a short Title shown in the list ([template](../templates/known-issues.md)); without a Title column the first sentence is used | Claude, whenever a finding is not fixed on the spot |
+
+## `plan.json`
+
+Template: [templates/plan.json](../templates/plan.json). The generator validates it and lists every problem.
+
+| Field | Meaning |
+| --- | --- |
+| `schema` | `1` |
+| `project`, `repo`, `updated` | Name; `owner/name` (makes `#12` a link to the pull request); date `YYYY-MM-DD` |
+| `here` | `stage`: where the project is. `next`: the next step and who does it. Each is one line, or a list of short points (shown as bullets; use a list when there is more than one fact) |
+| `dod[]` | `id`, `goal`, `start`, `current`, `target`, optional `ceiling` (the highest value possible), `unit`, `note`. The bar shows the way from `start` to `target`, up or down; at the target the card says to stop adding scope |
+| `stages[]` | `id`, `title`, `status` (`done`, `now`, `next`, `postponed`, `blocked`), optional `importance` (`high`, `medium`, `low`; a three-bar mark on every row), `started` and `finished` (`YYYY-MM-DD`), `blocked_by` (a stage id, shown as that stage's title, or a few words such as "waiting for a reply from the maintainers"; required for `blocked`, refused otherwise), `pr` (`#85`, `#15–#31`), `note`, `estimate` and `actual` (`{ minutes, window_pct }`: how long the AI worked and how much of the 5-hour window it cost; write the estimate when the stage is planned and the actual when it is done), `prompt`, `children[]` (one level of sub-stages) |
+| `undecided[]` | `text`, optional `recommended` |
+
+Rules the validator enforces: at most one top-level stage is `now`; a top-level `now` or `next` stage has a `prompt`
+(the text for the new window: what to read first, the check that the previous PR is merged, the task, the conditions);
+ids are unique; dates are real calendar days and `finished` is not before `started`; numbers are numbers; no `<slot>` left from the template (code in backticks is not a slot). A stage without its own estimate stands for the
+sum of its sub-stages. An estimate or actual that was never made is left out, not guessed.
+
+## What the page does
+
+- **Header**: the project name, "Updated <date> (3 days ago)" (today, yesterday, N days, then weeks, months, years; a longer unit appears only once it is reached, and the browser works it out so it stays right), "Where we are" and "Next" in two tinted boxes.
+- **Sections** are panels in different tints: Definition of Done (green), Stages (blue), Found bugs (red), New and undecided (grey).
+- **Stages** are listed now, next, blocked, postponed, then done with the newest first. The chips (All, then one per status that exists, with its mark and a count) work the same way in Stages and in Found bugs: All is on at first and the others are off; choosing a status turns All off, several can be on, choosing All turns the rest off, and turning off the last one brings All back. "Done since" (at the right) limits the done stages: the last 3 (default), the last 7, 30 or 90 days, all, or everything from a chosen stage on. "From here" on a done row sets the same choice and turns into "Show all" while it is the active one; a caption under the list says how many older done stages are hidden. Other statuses are never hidden by it. The ⓘ button on a row opens, right under the row, its dates and days and its time and window share: the estimate while the stage is not done, what it really took once it is done ("actual not recorded" when only an estimate exists). A stage with a body opens and closes on a click of its row. Without JavaScript every stage is visible and open.
+- **Found bugs** show a title; a click opens the description, where it was seen and when to fix it. P1 is open and red. Priority chips with counts are drawn only for priorities that exist, and only when there are at least two.
+
+## Building and publishing
+
+1. Update `docs/plan.json` (the status of the stage that ended, `current` in the Definition of Done, `actual`, `here`) and
+   `docs/known-issues.md`.
+2. `node scripts/plan-page.js <project> --out <scratch>/plan-page.html` (the output is not committed).
+3. Publish the file with the Artifact tool, with the same `file_path` on every update so the link stays the same. The
+   page is private; the link goes to the user, nobody else.
+4. Say the header in one line: where we are, the next step.
+
+The page loads two fonts from Google Fonts (IBM Plex Sans and Mono), has light and dark themes and works at phone
+width. Its look is [templates/plan-design.css](../templates/plan-design.css): six core tokens, four status colors,
+three priority colors. Change the file in the kit, never in one project, so the pages stay alike. Status is shown by a
+shape and a word as well as a color.
+
+## Why a plain page and not the Dashboard type
+
+The Dashboard Artifact type is built around datasets (queries or attached CSV / JSON), forbids numbers written into the
+markup and brings its own fonts. A plan page is a list of statuses with copy buttons and a fixed design, so it is a plain
+page generated from a template. Check the type again if its description changes.
+
+## Limits
+
+- The page cannot start work: a button copies the stage prompt, and the user pastes it into a new window.
+- The kit's other plan page, [the one on GitHub Pages](../../../../publishing/skills/github-pages-playground/references/plan-page.md),
+  is a public read-only view of `PLAN.md` for people who follow a project; it does not replace this one.
